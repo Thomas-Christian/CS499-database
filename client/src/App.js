@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Box, Separator, VStack, Flex } from '@chakra-ui/react';
 import Header from './components/Header';
 import FilterDropdown from './components/FilterDropdown';
 import DataTable from './components/DataTable';
 import PieChart from './components/PieChart';
 import MapComponent from './components/MapComponent';
-import './App.css';
 
 function App() {
   const [animals, setAnimals] = useState([]);
@@ -57,27 +57,31 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <Header />
-      <FilterDropdown onChange={handleFilterChange} />
-      <hr />
-      <DataTable 
-        animals={filteredAnimals} 
-        loading={loading} 
-        onRowSelect={handleRowSelection} 
-      />
-      <hr />
-      <div className="visualization-container">
-        <div className="chart-container">
-          {filteredAnimals.length > 0 && filteredAnimals.length < animals.length && (
-            <PieChart animals={filteredAnimals} />
-          )}
-        </div>
-        <div className="map-container">
-          <MapComponent selectedAnimal={selectedAnimal} />
-        </div>
-      </div>
-    </div>
+    <Box bg="gray.50" minH="100vh" p={5}>
+      <VStack spacing={5} align="stretch" maxW="1400px" mx="auto">
+        <Header />
+        <FilterDropdown onChange={handleFilterChange} />
+        <Separator />
+        <DataTable 
+          animals={filteredAnimals} 
+          loading={loading} 
+          onRowSelect={handleRowSelection} 
+        />
+        <Separator />
+        <Flex 
+          direction={{ base: 'column', md: 'row' }} 
+          h={{ base: 'auto', md: '70vh' }}
+          gap={5}
+        >
+          <Box flex="1" h={{ base: '400px', md: '100%' }}>
+            <PieChart animals={filteredAnimals} /> 
+          </Box>
+          <Box flex="1" h={{ base: '400px', md: '100%' }}>
+            <MapComponent selectedAnimal={selectedAnimal} />
+          </Box>
+        </Flex>
+      </VStack>
+    </Box>
   );
 }
 

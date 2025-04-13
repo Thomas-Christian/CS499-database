@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Box } from '@chakra-ui/react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -27,22 +28,28 @@ const MapComponent = ({ selectedAnimal }) => {
   }, [selectedAnimal]);
 
   return (
-    <div style={{ height: '100%', width: '100%' }}>
+    <Box 
+      bg="white" 
+      borderRadius="lg" 
+      boxShadow="md" 
+      overflow="hidden"
+      h="100%"
+    >
       <MapContainer 
         center={position} 
         zoom={zoom} 
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}
         key={`${position[0]}-${position[1]}-${zoom}`}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          //attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         {selectedAnimal && selectedAnimal.location_lat && selectedAnimal.location_long && (
           <Marker position={[selectedAnimal.location_lat, selectedAnimal.location_long]}>
             <Popup>
               <div>
-                <h3>Animal Information</h3>
+                <h3 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Animal Information</h3>
                 <p><strong>Name:</strong> {selectedAnimal.name || 'Unknown'}</p>
                 <p><strong>Breed:</strong> {selectedAnimal.breed}</p>
                 <p><strong>Type:</strong> {selectedAnimal.animal_type}</p>
@@ -51,7 +58,7 @@ const MapComponent = ({ selectedAnimal }) => {
           </Marker>
         )}
       </MapContainer>
-    </div>
+    </Box>
   );
 };
 
