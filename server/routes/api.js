@@ -1,26 +1,36 @@
 const express = require('express');
 const router = express.Router();
+const { protect, authorize } = require('../middleware/auth');
+const { logRouteAccess } = require('../utils/auditLogger');
 const {
   getAnimals,
   getFilteredAnimals,
+  getAnimal,
   createAnimal,
   updateAnimal,
-  deleteAnimal
+  deleteAnimal,
+  getAnimalsInRadius,
+  getAnimalStats
 } = require('../controllers/animalController');
 
-// Get all animals
+// Apply route access logging middleware
+router.use(logRouteAccess);
+
+// Apply protection to routes
+router.use(protect);
+
+// Animal routes - basic protection only
 router.get('/animals', getAnimals);
-
-// Get filtered animals
 router.get('/animals/filter/:filterType', getFilteredAnimals);
+router.get('/animals/:id', getAnimal);
+router.get('/animals/radius/:zipcode/:distance', getAnimalsInRadius);
+router.get('/animals/stats', getAnimalStats);
 
-// Create a new animal
-router.post('/animals', createAnimal);
+// Routes that require staff or admin access
+router.post('/animals', authorize('admin', 'staff'), createAnimal);
+router.put('/animals/:id', authorize('admin', 'staff'), updateAnimal);
 
-// Update an animal
-router.put('/animals/:id', updateAnimal);
-
-// Delete an animal
-router.delete('/animals/:id', deleteAnimal);
+// Routes that require admin access only
+router.delete('/animals/:id', authorize('admin'), deleteAnimal);
 
 module.exports = router;
