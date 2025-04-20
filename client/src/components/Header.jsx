@@ -76,7 +76,7 @@ const Header = () => {
             mr: 2
           }}
         >
-          Animal Shelter Dashboard
+          Shelter Dashboard
         </Typography>
 
         <Stack direction="row" spacing={2} alignItems="center">
@@ -136,16 +136,23 @@ const Header = () => {
                   onClick={handleMenuOpen}
                   variant="contained"
                   color="primary"
+                  
                   endIcon={user?.role && (
                     <Chip
-                      label={user.role}
+                      variant='text'
+                      label={user.role.toUpperCase()}
                       size="small"
                       color={getRoleBadgeColor(user.role)}
-                      sx={{ ml: 0.5 }}
+                      sx={{ 
+                        '& .MuiChip-label': {
+                          fontSize: '14px',
+                          fontWeight: 'bold'
+                        }
+                      }}
                     />
                   )}
                 >
-                  {isMobile ? 'Menu' : user?.name}
+                  {isMobile ? 'Menu' : 'Current User:'}
                 </Button>
                 <Menu
                   anchorEl={anchorEl}

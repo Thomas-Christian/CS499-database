@@ -8,7 +8,6 @@ import {
   Stack,
   CircularProgress,
   Button,
-  ButtonGroup,
   TextField,
   Grid,
   IconButton,
@@ -30,9 +29,7 @@ import {
   Alert as MuiAlert,
   InputLabel,
   Select,
-  FormControl,
-  Divider
-} from '@mui/material';
+  FormControl} from '@mui/material';
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -47,7 +44,8 @@ const AuditLogs = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedLog, setSelectedLog] = useState(null);
-  const [filters, setFilters] = useState({ action: '', targetModel: '', startDate: '', endDate: '' });
+  const [filters, setFilters] = useState({ actionType: '', targetModel: '', startDate: '', endDate: '' });
+  const [activeFilters, setActiveFilters] = useState({ actionType: '', targetModel: '', startDate: '', endDate: '' });
   
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -62,37 +60,57 @@ const AuditLogs = () => {
   const { token } = useAuth();
   const cancelRef = useRef();
 
+
+
   useEffect(() => {
-    const fetchLogs = async () => {
+
+    const fetchLogs = async (currentPage = page, currentFilters = activeFilters) => {
       try {
         setLoading(true);
-        const params = { page, limit: 20, ...filters };
+        const params = { 
+          page: currentPage, 
+          limit: 20, 
+          ...currentFilters 
+        };
+        
+        // Remove any empty filter values
         Object.keys(params).forEach(key => !params[key] && delete params[key]);
+        
         const res = await axios.get('http://localhost:5000/api/audit', {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });
+        
         setLogs(res.data.data);
         setTotalPages(res.data.pagination.pages);
         setError(null);
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching audit logs:', err);
         setError('Failed to fetch audit logs');
         showNotification('Failed to fetch audit logs', 'error');
       } finally {
         setLoading(false);
       }
     };
+    
     fetchLogs();
-  }, [token, page, filters]);
+
+  }, [token, page, activeFilters]);
 
   const handleFilterChange = e => { 
-    setFilters(f => ({ ...f, [e.target.name]: e.target.value })); 
-    setPage(1); 
+    setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+  
+  const applyFilters = () => {
+    setActiveFilters(filters);
+    setPage(1);
+    showNotification('Filters applied', 'success');
   };
   
   const clearFilters = () => { 
-    setFilters({ action: '', targetModel: '', startDate: '', endDate: '' }); 
+    const emptyFilters = { actionType: '', targetModel: '', startDate: '', endDate: '' };
+    setFilters(emptyFilters);
+    setActiveFilters(emptyFilters);
     setPage(1); 
     showNotification('Filters cleared', 'info'); 
   };
@@ -162,14 +180,16 @@ const AuditLogs = () => {
           </Typography>
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth variant="outlined" size="small">
+              <FormControl sx={{ minWidth: 100 }}variant="outlined" size="small">
                 <InputLabel id="action-filter-label">Action</InputLabel>
                 <Select
                   labelId="action-filter-label"
-                  name="action"
-                  value={filters.action}
+                  name="actionType"
+                  value={filters.actionType}
                   onChange={handleFilterChange}
-                  label="Action"
+                  autoWidth
+                  label="Action Type"
+                  
                 >
                   <MenuItem value="">All Actions</MenuItem>
                   <MenuItem value="CREATE">Create</MenuItem>
@@ -180,19 +200,22 @@ const AuditLogs = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth variant="outlined" size="small">
+              <FormControl sx={{ minWidth: 100 }} variant="outlined" size="small">
                 <InputLabel id="model-filter-label">Model</InputLabel>
                 <Select
                   labelId="model-filter-label"
-                  name="targetModel"
                   value={filters.targetModel}
                   onChange={handleFilterChange}
                   label="Model"
+                  fullWidth
+                  notched
+                  
                 >
                   <MenuItem value="">All Models</MenuItem>
                   <MenuItem value="User">User</MenuItem>
                   <MenuItem value="Animal">Animal</MenuItem>
                   <MenuItem value="Auth">Auth</MenuItem>
+                  <MenuItem value="AuditLog">AuditLog</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -203,11 +226,13 @@ const AuditLogs = () => {
                 type="date"
                 value={filters.startDate}
                 onChange={handleFilterChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
                 size="small"
                 fullWidth
+                slotProps={{
+                  inputLabel: {shrink: true}
+                }}
+                
+
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -217,11 +242,11 @@ const AuditLogs = () => {
                 type="date"
                 value={filters.endDate}
                 onChange={handleFilterChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
                 size="small"
                 fullWidth
+                slotProps={{
+                  inputLabel: {shrink: true}
+                }}
               />
             </Grid>
           </Grid>
@@ -233,6 +258,7 @@ const AuditLogs = () => {
               variant="contained" 
               color="primary" 
               startIcon={<SearchIcon />}
+              onClick={applyFilters}
             >
               Apply
             </Button>
@@ -241,6 +267,55 @@ const AuditLogs = () => {
       </Collapse>
 
       {error && <Typography color="error" mb={2}>{error}</Typography>}
+
+      {/* Status indicators */}
+      {Object.values(activeFilters).some(val => val) && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>Active filters:</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {activeFilters.actionType && (
+              <Chip 
+                label={`Action Type: ${activeFilters.actionType}`} 
+                size="small" 
+                onDelete={() => {
+                  setFilters(prev => ({ ...prev, actionType: '' }));
+                  setActiveFilters(prev => ({ ...prev, actionType: '' }));
+                }} 
+              />
+            )}
+            {activeFilters.targetModel && (
+              <Chip 
+                label={`Model: ${activeFilters.targetModel}`} 
+                size="small" 
+                onDelete={() => {
+                  setFilters(prev => ({ ...prev, targetModel: '' }));
+                  setActiveFilters(prev => ({ ...prev, targetModel: '' }));
+                }} 
+              />
+            )}
+            {activeFilters.startDate && (
+              <Chip 
+                label={`From: ${activeFilters.startDate}`} 
+                size="small" 
+                onDelete={() => {
+                  setFilters(prev => ({ ...prev, startDate: '' }));
+                  setActiveFilters(prev => ({ ...prev, startDate: '' }));
+                }} 
+              />
+            )}
+            {activeFilters.endDate && (
+              <Chip 
+                label={`To: ${activeFilters.endDate}`} 
+                size="small" 
+                onDelete={() => {
+                  setFilters(prev => ({ ...prev, endDate: '' }));
+                  setActiveFilters(prev => ({ ...prev, endDate: '' }));
+                }} 
+              />
+            )}
+          </Box>
+        </Box>
+      )}
 
       <TableContainer sx={{ mb: 2 }}>
         <Table size="small">
@@ -281,7 +356,7 @@ const AuditLogs = () => {
             )) : (
               <TableRow>
                 <TableCell colSpan={6} align="center">
-                  No logs found
+                  {loading ? 'Loading...' : 'No logs found'}
                 </TableCell>
               </TableRow>
             )}
@@ -327,8 +402,10 @@ const AuditLogs = () => {
             <Stack spacing={2}>
               <Typography><strong>Timestamp:</strong> {formatTs(selectedLog.timestamp)}</Typography>
               <Typography><strong>Action:</strong> {selectedLog.action}</Typography>
+              <Typography><strong>Action Type:</strong> {selectedLog.actionType}</Typography>
               <Typography><strong>User:</strong> {selectedLog.user?.name || 'System'}</Typography>
               <Typography><strong>Model:</strong> {selectedLog.targetModel}</Typography>
+              <Typography><strong>Target ID:</strong> {selectedLog.targetId || 'N/A'}</Typography>
               <Typography><strong>IP:</strong> {selectedLog.ip || 'N/A'}</Typography>
               {selectedLog.details && (
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1, maxHeight: 200, overflow: 'auto' }}>

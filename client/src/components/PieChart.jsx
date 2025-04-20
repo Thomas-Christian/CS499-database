@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 import Plot from 'react-plotly.js';
 import { blue } from '@mui/material/colors';
+import { useAnimal } from '../context/AnimalContext'; // Add this import
 
-const PieChart = ({ animals }) => {
+const PieChart = () => {
   const [chartData, setChartData] = useState({});
+  const { animals } = useAnimal();
   
   useEffect(() => {
     if (animals && animals.length > 0) {
@@ -35,6 +37,13 @@ const PieChart = ({ animals }) => {
             blue[900], blue[800], blue[700], blue[600]
           ]
         }
+      });
+    } else {
+      // Set empty chart data if no animals
+      setChartData({
+        labels: [],
+        values: [],
+        type: 'pie'
       });
     }
   }, [animals]);

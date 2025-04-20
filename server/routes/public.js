@@ -37,16 +37,15 @@ router.get('/animals', async (req, res) => {
     
     // // Basic filtering
     const query = {};
-    // if (req.query.animal_type) {
-    //   filter.animal_type = req.query.animal_type;
-    // }
-    // if (req.query.breed) {
-    //   filter.breed = { $regex: req.query.breed, $options: 'i' };
-    // }
+    if (req.query.animal_type) {
+      filter.animal_type = req.query.animal_type;
+    }
+    if (req.query.breed) {
+      filter.breed = { $regex: req.query.breed, $options: 'i' };
+    }
     
     // Limited fields for public view
     const animals = await Animal.find(query)
-      .select('name animal_type breed color age_upon_outcome sex_upon_outcome outcome_type')
       .skip(skip)
       .limit(limit)
       .sort('-datetime');
@@ -89,7 +88,7 @@ router.get('/animals/filter/:filterType', async (req, res) => {
   try {
       const { filterType } = req.params;
 
-      console.log(JSON.stringify(filterType))
+      const decodedFilter = decodeURIComponent(filterType);
 
       let query = {};
 
@@ -97,13 +96,13 @@ router.get('/animals/filter/:filterType', async (req, res) => {
       const mountianWildernessBreeds = ["German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"]
       const disasterTrackingBreeds = ["Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"]
   
-      if (filterType === 'Water%20Rescue') {
+      if (decodedFilter === 'Water Rescue') {
         query = { $or: waterBreeds.map(breed => ({ breed })) }
 
-      } else if (filterType === 'Mountain%2FWilderness') {
+      } else if (decodedFilter === 'Mountain/Wilderness') {
         query = { $or: mountianWildernessBreeds.map(breed => ({ breed })) }
 
-      } else if (filterType === 'Disaster%2FTracking') {
+      } else if (decodedFilter === 'Disaster/Tracking') {
         query = { $or: disasterTrackingBreeds.map(breed => ({ breed })) }
 
       } else {

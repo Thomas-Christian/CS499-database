@@ -60,7 +60,6 @@ export default function Login() {
             textAlign: 'center'
           }}
           title="Login"
-          titleTypographyProps={{ variant: 'h5' }}
         />
         <CardContent sx={{ p: 3 }}>
           <form onSubmit={onSubmit}>
@@ -71,8 +70,8 @@ export default function Login() {
                 </Alert>
               )}
 
-              <FormControl fullWidth required>
-                <InputLabel htmlFor="email">Email Address</InputLabel>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="email"></InputLabel>
                 <TextField
                   id="email"
                   name="email"
@@ -87,8 +86,8 @@ export default function Login() {
                 />
               </FormControl>
 
-              <FormControl fullWidth required>
-                <InputLabel htmlFor="password">Password</InputLabel>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="password"></InputLabel>
                 <TextField
                   id="password"
                   name="password"

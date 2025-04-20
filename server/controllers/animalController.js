@@ -109,19 +109,21 @@ exports.getFilteredAnimals = async (req, res) => {
   try {
     const { filterType } = req.params;
 
+    const decodedFilter = decodeURIComponent(filterType);
+
     let query = {};
 
       const waterBreeds = ["Labrador Retriever Mix", "Chesapeake Bay Retriever", "Newfoundland"]
       const mountianWildernessBreeds = ["German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"]
       const disasterTrackingBreeds = ["Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"]
   
-      if (filterType === 'Water') {
+      if (decodedFilter === 'Water Rescue') {
         query = { $or: waterBreeds.map(breed => ({ breed })) }
 
-      } else if (filterType === 'Mountain/Wilderness') {
+      } else if (decodedFilter === 'Mountain/Wilderness') {
         query = { $or: mountianWildernessBreeds.map(breed => ({ breed })) }
 
-      } else if (filterType === 'Disaster/Tracking') {
+      } else if (decodedFilter === 'Disaster/Tracking') {
         query = { $or: disasterTrackingBreeds.map(breed => ({ breed })) }
         
     } else {

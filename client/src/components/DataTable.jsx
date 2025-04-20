@@ -1,6 +1,5 @@
 // src/components/DataTable.jsx
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useEffect } from "react";
 import {
   Stack,
   CircularProgress,
@@ -22,37 +21,30 @@ import {
   Select,
   MenuItem,
   Grid,
-  Divider,
   Snackbar
 } from "@mui/material";
 import MuiAlert from '@mui/material/Alert';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAnimal } from '../context/AnimalContext'; // Add this import
 
 const DataTable = () => {
-  var ANIMAL_API='http://localhost:5000/api/animals';
-  var PUBLIC_ANIMAL_API='http://localhost:5000/api/public/animals';
-
-  // Define the number of items per page
-  const itemsPerPage = 7;
-  
-  // State variables
-  const [animals, setAnimals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [selectedAnimal, setSelectedAnimal] = useState(null);
-  
-  // Snackbar state for notifications
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info"
-  });
+  // Get animal context
+  const { 
+    animals, 
+    loading, 
+    error, 
+    page, 
+    setPage, 
+    totalPages, 
+    totalItems, 
+    selectedAnimal, 
+    setSelectedAnimal, 
+    snackbar, 
+    handleCloseSnackbar,
+    fetchAnimals
+  } = useAnimal();
   
   // Get auth context
   const { isAuthenticated, user, token } = useAuth();
@@ -78,74 +70,10 @@ const DataTable = () => {
     navigate('/');
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({...snackbar, open: false});
-  };
-
-  const showNotification = (message, severity = "info") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity
-    });
-  };
-
   // Fetch animals based on authentication status and filter
   useEffect(() => {
-    const fetchAnimals = async () => {
-      try {
-        setLoading(true);
-        let endpoint;
-        let config = {};
-        
-        // Determine the endpoint based on currentFilter and authentication
-        if (isAuthenticated) {
-          // Authenticated users use the protected API
-          endpoint = currentFilter 
-            ? `${ANIMAL_API}/filter/${currentFilter}`
-            : `${ANIMAL_API}`;
-          
-          config = {
-            headers: {
-              Authorization: `Bearer ${token}`
-            },
-            params: {
-              page,
-              limit: itemsPerPage
-            }
-          };
-        } else {
-          // Unauthenticated users use the public API
-          endpoint = currentFilter 
-            ? `${PUBLIC_ANIMAL_API}/filter/${currentFilter}`
-            : `${PUBLIC_ANIMAL_API}`;
-          
-          config = {
-            params: {
-              page,
-              limit: itemsPerPage
-            }
-          };
-        }
-        
-        const res = await axios.get(endpoint, config);
-        
-        // Update state with the fetched data
-        setAnimals(res.data.data);
-        setTotalItems(res.data.pagination.total);
-        setTotalPages(res.data.pagination.pages);
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to fetch animals. Please try again later.');
-        showNotification('Failed to fetch animals. Please try again later.', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAnimals();
-  }, [currentFilter, page, isAuthenticated, token, ANIMAL_API, PUBLIC_ANIMAL_API]);
+    fetchAnimals(currentFilter, page);
+  }, [currentFilter, page, fetchAnimals]);
 
   // Get outcome badge color
   const getOutcomeBadgeColor = (outcome) => {
@@ -215,12 +143,12 @@ const DataTable = () => {
         {/* Header with title and filter */}
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs={12} md={4}>
-            <Typography variant="h4">Animals</Typography>
+            <Typography variant="h5">Animals</Typography>
           </Grid>
           
           <Grid item xs={12} md={4}>
             <FormControl fullWidth variant="outlined" size="small">
-              <InputLabel id="filter-label">Filter by Training Type</InputLabel>
+              <InputLabel id="filter-label"></InputLabel>
               <Select
                 labelId="filter-label"
                 id="filter-select"
@@ -231,26 +159,13 @@ const DataTable = () => {
               >
                 <MenuItem value="">All Animals</MenuItem>
                 <MenuItem value="Water Rescue">Water Rescue</MenuItem>
-                <MenuItem value="Mountain%2FWilderness">Mountain/Wilderness</MenuItem>
-                <MenuItem value="Disaster-Tracking">Disaster-Tracking</MenuItem>
+                <MenuItem value="Mountain/Wilderness">Mountain/Wilderness</MenuItem>
+                <MenuItem value="Disaster/Tracking">Disaster/Tracking</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           
-          <Grid item xs={12} md={4}>
-            {isAuthenticated && user && (
-              <Box display="flex" alignItems="center" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} gap={1}>
-                <Typography variant="body2">Logged in as:</Typography>
-                <Typography variant="body2" fontWeight="bold">{user.name}</Typography>
-                <Chip 
-                  label={user.role}
-                  color={getRoleBadgeColor(user.role)}
-                  size="small"
-                  sx={{ fontWeight: 500 }}
-                />
-              </Box>
-            )}
-          </Grid>
+
         </Grid>
         
         {/* Active filter indicator */}

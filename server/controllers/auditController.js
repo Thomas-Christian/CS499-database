@@ -6,6 +6,7 @@ const { getAuditLogs, createAuditLog } = require('../utils/auditLogger');
 // @access  Private/Admin
 exports.getAuditLogs = async (req, res) => {
   try {
+
     const result = await getAuditLogs(req.query);
     
     // Log this access to audit logs
@@ -22,6 +23,7 @@ exports.getAuditLogs = async (req, res) => {
     
     res.status(200).json(result);
   } catch (error) {
+    console.error('Error in getAuditLogs controller:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -60,6 +62,7 @@ exports.getAuditLogById = async (req, res) => {
       data: auditLog
     });
   } catch (error) {
+    console.error('Error in getAuditLogById controller:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -111,6 +114,7 @@ exports.getUserActivity = async (req, res) => {
       data: logs
     });
   } catch (error) {
+    console.error('Error in getUserActivity controller:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -213,6 +217,7 @@ exports.getAuditStats = async (req, res) => {
       data: stats[0]
     });
   } catch (error) {
+    console.error('Error in getAuditStats controller:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -249,6 +254,7 @@ exports.getAnimalActivity = async (req, res) => {
       data: logs
     });
   } catch (error) {
+    console.error('Error in getAnimalActivity controller:', error);
     res.status(500).json({
       success: false,
       message: error.message

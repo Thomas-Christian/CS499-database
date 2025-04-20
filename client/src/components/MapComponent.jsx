@@ -3,6 +3,7 @@ import { Box, Paper } from '@mui/material';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useAnimal } from '../context/AnimalContext';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -12,7 +13,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const MapComponent = ({ selectedAnimal }) => {
+const MapComponent = () => {
+  const { selectedAnimal } = useAnimal();
   const [position, setPosition] = useState([30.75, -97.48]);
   const [zoom, setZoom] = useState(10);
 

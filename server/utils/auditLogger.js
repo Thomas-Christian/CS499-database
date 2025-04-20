@@ -91,10 +91,13 @@ exports.getAuditLogs = async (queryParams) => {
   
   // Build query
   let query = {};
+
+  console.log("PARAMS", queryParams)
   
   // Filter by action
-  if (queryParams.action) {
-    query.action = queryParams.action;
+  if (queryParams.actionType) {
+    query.actionType = queryParams.actionType;
+    console.log("Assigned action filter:", query.actionType)
   }
   
   // Filter by user
@@ -127,12 +130,16 @@ exports.getAuditLogs = async (queryParams) => {
   // Execute query with pagination
   const total = await AuditLog.countDocuments(query);
   
+  console.log("QUERY:", query)
+
   const logs = await AuditLog.find(query)
     .populate('user', 'name email')
     .sort({ timestamp: -1 })
     .skip(startIndex)
     .limit(limit);
   
+  
+
   // Return results with pagination metadata
   return {
     success: true,
