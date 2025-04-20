@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box } from '@chakra-ui/react';
+import { Box, Paper } from '@mui/material';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -28,37 +28,40 @@ const MapComponent = ({ selectedAnimal }) => {
   }, [selectedAnimal]);
 
   return (
-    <Box 
-      bg="white" 
-      borderRadius="lg" 
-      boxShadow="md" 
-      overflow="hidden"
-      h="100%"
+    <Paper
+      elevation={2}
+      sx={{
+        height: '100%',
+        overflow: 'hidden',
+        borderRadius: 1
+      }}
     >
-      <MapContainer 
-        center={position} 
-        zoom={zoom} 
-        style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}
-        key={`${position[0]}-${position[1]}-${zoom}`}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          //attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        />
-        {selectedAnimal && selectedAnimal.location_lat && selectedAnimal.location_long && (
-          <Marker position={[selectedAnimal.location_lat, selectedAnimal.location_long]}>
-            <Popup>
-              <div>
-                <h3 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Animal Information</h3>
-                <p><strong>Name:</strong> {selectedAnimal.name || 'Unknown'}</p>
-                <p><strong>Breed:</strong> {selectedAnimal.breed}</p>
-                <p><strong>Type:</strong> {selectedAnimal.animal_type}</p>
-              </div>
-            </Popup>
-          </Marker>
-        )}
-      </MapContainer>
-    </Box>
+      <Box sx={{ height: '100%', width: '100%' }}>
+        <MapContainer 
+          center={position} 
+          zoom={zoom} 
+          style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}
+          key={`${position[0]}-${position[1]}-${zoom}`}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            //attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+          {selectedAnimal && selectedAnimal.location_lat && selectedAnimal.location_long && (
+            <Marker position={[selectedAnimal.location_lat, selectedAnimal.location_long]}>
+              <Popup>
+                <div>
+                  <h3 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Animal Information</h3>
+                  <p><strong>Name:</strong> {selectedAnimal.name || 'Unknown'}</p>
+                  <p><strong>Breed:</strong> {selectedAnimal.breed}</p>
+                  <p><strong>Type:</strong> {selectedAnimal.animal_type}</p>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+        </MapContainer>
+      </Box>
+    </Paper>
   );
 };
 

@@ -62,6 +62,11 @@ app.use(limiter);
 // XSS protection middleware
 app.use(xssSanitize);
 
+app.use((req, res, next) => {
+  console.log(`Request URL: ${req.method} ${req.url}`);
+  next();
+});
+
 // Mount 
 app.use('/api/public', require('./routes/public'));
 

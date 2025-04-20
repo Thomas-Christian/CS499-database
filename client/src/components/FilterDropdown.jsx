@@ -1,19 +1,22 @@
 // src/components/FilterDropdown.jsx
 import React from 'react';
 import {
-  Field,
-  NativeSelect,
   Box,
-  Flex,
-  Text,
-  Badge,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Typography,
+  Chip,
   Button,
-  Stack
-} from '@chakra-ui/react';
+  Stack,
+  Alert,
+  Grid
+} from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function FilterDropdown() {
+export default function FilterDropdown({ compact = false }) {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,63 +36,160 @@ export default function FilterDropdown() {
     }
   };
 
+  // Get role badge color
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case 'admin':
+        return 'error';
+      case 'staff':
+        return 'success';
+      case 'volunteer':
+        return 'primary';
+      default:
+        return 'default';
+    }
+  };
+
+  // If in compact mode, just render the filter dropdown without the paper container
+  if (compact) {
+    return (
+      <Box sx={{ width: '100%' }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel id="filter-label">Filter by Training Type</InputLabel>
+              <Select
+                labelId="filter-label"
+                id="filter-select"
+                value={currentFilter}
+                onChange={handleChange}
+                label="Filter by Training Type"
+              >
+                <MenuItem value="">All Animals</MenuItem>
+                <MenuItem value="Water">Water Rescue</MenuItem>
+                <MenuItem value="Mountain/Wilderness">Mountain/Wilderness</MenuItem>
+                <MenuItem value="Disaster/Tracking">Disaster/Tracking</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            {isAuthenticated && user && (
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                alignItems={{ xs: 'flex-start', md: 'center' }}
+                spacing={1}
+                justifyContent="flex-end"
+              >
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body2">Logged in as:</Typography>
+                  <Typography variant="body2" fontWeight="bold">{user.name}</Typography>
+                  <Chip 
+                    label={user.role}
+                    color={getRoleBadgeColor(user.role)}
+                    size="small"
+                    sx={{ fontWeight: 500 }}
+                  />
+                </Box>
+              </Stack>
+            )}
+          </Grid>
+        </Grid>
+
+        {currentFilter && (
+          <Box mt={2}>
+            <Alert 
+              severity="info" 
+              action={
+                <Button color="inherit" size="small" onClick={() => navigate('/')}>
+                  Clear
+                </Button>
+              }
+            >
+              <Typography variant="body2">
+                <strong>Active Filter:</strong> {currentFilter}
+              </Typography>
+            </Alert>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
+  // Standard non-compact rendering with Paper container (original behavior)
   return (
     <Box
-      bg="white"
-      p={4}
-      borderRadius="lg"
-      boxShadow="sm"
+      sx={{
+        p: 2,
+        bgcolor: 'background.paper',
+        borderRadius: 1,
+        boxShadow: 1
+      }}
     >
-      <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" wrap="wrap" gap={4}>
-        <Field.Root>
-          <Field.Label fontWeight="medium">Filter by Training Type:</Field.Label>
-          <NativeSelect.Root>
-            <NativeSelect.Field onChange={handleChange} value={currentFilter}>
-              <option value="">All Animals</option>
-              <option value="Water">Water Rescue</option>
-              <option value="Mountain/Wilderness">Mountain/Wilderness</option>
-              <option value="Disaster/Tracking">Disaster/Tracking</option>
-            </NativeSelect.Field>
-            <NativeSelect.Indicator />
-          </NativeSelect.Root>
-        </Field.Root>
+      <Grid
+        container
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        spacing={2}
+      >
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth variant="outlined">
+            <InputLabel id="filter-label">Filter by Training Type</InputLabel>
+            <Select
+              labelId="filter-label"
+              id="filter-select"
+              value={currentFilter}
+              onChange={handleChange}
+              label="Filter by Training Type"
+            >
+              <MenuItem value="">All Animals</MenuItem>
+              <MenuItem value="Water">Water Rescue</MenuItem>
+              <MenuItem value="Mountain/Wilderness">Mountain/Wilderness</MenuItem>
+              <MenuItem value="Disaster/Tracking">Disaster/Tracking</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
         
         {isAuthenticated && (
-          <Stack direction={{ base: 'column', md: 'row' }} align="center" spacing={4}>
-            {user && (
-              <Flex align="center" gap={2}>
-                <Text>Logged in as:</Text>
-                <Text fontWeight="bold">{user.name}</Text>
-                <Badge 
-                  colorScheme={user.role === 'admin' ? 'red' : user.role === 'staff' ? 'green' : 'blue'}
-                  borderRadius="md"
-                  px={2}
-                  py={1}
-                >
-                  {user.role}
-                </Badge>
-              </Flex>
-            )}
-          </Stack>
+          <Grid item xs={12} md={6}>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              spacing={1}
+            >
+              {user && (
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body1">Logged in as:</Typography>
+                  <Typography variant="body1" fontWeight="bold">{user.name}</Typography>
+                  <Chip 
+                    label={user.role}
+                    color={getRoleBadgeColor(user.role)}
+                    size="small"
+                    sx={{ fontWeight: 500 }}
+                  />
+                </Box>
+              )}
+            </Stack>
+          </Grid>
         )}
-      </Flex>
+      </Grid>
 
       {currentFilter && (
-        <Box mt={4} p={2} bg="blue.50" borderRadius="md">
-          <Text fontSize="sm" color="blue.600">
-            <strong>Active Filter:</strong> {currentFilter}
+        <Box mt={2} p={1} sx={{ bgcolor: 'primary.50', borderRadius: 1 }}>
+          <Typography variant="body2" color="primary.main" display="flex" alignItems="center">
+            <strong>Active Filter:</strong>&nbsp;{currentFilter}
             <Button 
-              size="xs" 
-              variant="link" 
-              colorScheme="blue" 
-              ml={2}
+              size="small" 
+              color="primary" 
               onClick={() => navigate('/')}
+              sx={{ ml: 1 }}
             >
               Clear
             </Button>
-          </Text>
+          </Typography>
         </Box>
       )}
     </Box>
   );
-};
+}

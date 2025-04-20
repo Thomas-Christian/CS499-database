@@ -35,24 +35,24 @@ router.get('/animals', async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
     
-    // Basic filtering
-    const filter = {};
-    if (req.query.animal_type) {
-      filter.animal_type = req.query.animal_type;
-    }
-    if (req.query.breed) {
-      filter.breed = { $regex: req.query.breed, $options: 'i' };
-    }
+    // // Basic filtering
+    const query = {};
+    // if (req.query.animal_type) {
+    //   filter.animal_type = req.query.animal_type;
+    // }
+    // if (req.query.breed) {
+    //   filter.breed = { $regex: req.query.breed, $options: 'i' };
+    // }
     
     // Limited fields for public view
-    const animals = await Animal.find(filter)
+    const animals = await Animal.find(query)
       .select('name animal_type breed color age_upon_outcome sex_upon_outcome outcome_type')
       .skip(skip)
       .limit(limit)
       .sort('-datetime');
     
     // Get total count for pagination
-    const total = await Animal.countDocuments(filter);
+    const total = await Animal.countDocuments(query);
     
     // Log access (anonymously)
     await createAuditLog({
@@ -63,7 +63,7 @@ router.get('/animals', async (req, res) => {
       targetId: null,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
-      details: { filter, page, limit }
+      details: { query, page, limit }
     });
     
     res.status(200).json({
@@ -87,78 +87,107 @@ router.get('/animals', async (req, res) => {
 // Get filtered animals (public, limited fields)
 router.get('/animals/filter/:filterType', async (req, res) => {
   try {
-    const { filterType } = req.params;
-    let query = {};
-    
-    if (filterType === 'Water') {
-      query = {
-        breed: { $in: ["Labrador Retriever Mix", "Chesapeake Bay Retriever", "Newfoundland"] }
-      };
-    } else if (filterType === 'Mountain/Wilderness') {
-      query = {
-        breed: { $in: ["German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"] }
-      };
-    } else if (filterType === 'Disaster/Tracking') {
-      query = {
-        breed: { $in: ["Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"] }
-      };
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid filter type'
+      const { filterType } = req.params;
+
+      console.log(JSON.stringify(filterType))
+
+      let query = {};
+
+      const waterBreeds = ["Labrador Retriever Mix", "Chesapeake Bay Retriever", "Newfoundland"]
+      const mountianWildernessBreeds = ["German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"]
+      const disasterTrackingBreeds = ["Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"]
+  
+      if (filterType === 'Water%20Rescue') {
+        query = { $or: waterBreeds.map(breed => ({ breed })) }
+
+      } else if (filterType === 'Mountain%2FWilderness') {
+        query = { $or: mountianWildernessBreeds.map(breed => ({ breed })) }
+
+      } else if (filterType === 'Disaster%2FTracking') {
+        query = { $or: disasterTrackingBreeds.map(breed => ({ breed })) }
+
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid filter type'
+        });
+      }
+
+      // Add additional filtering options from query params
+      const additionalFilters = { ...req.query };
+      
+      // Fields to exclude from filtering
+      const removeFields = ['select', 'sort', 'page', 'limit'];
+      removeFields.forEach(param => delete additionalFilters[param]);
+      
+      // Merge queries if additional filters provided
+      if (Object.keys(additionalFilters).length > 0) {
+        Object.keys(additionalFilters).forEach(key => {
+          if (!query[key]) {
+            query[key] = additionalFilters[key];
+          }
+        });
+      }
+  
+      // Pagination
+      const page = parseInt(req.query.page, 10) || 1;
+      const limit = parseInt(req.query.limit, 10) || 25;
+      const startIndex = (page - 1) * limit;
+      const total = await Animal.countDocuments(query);
+  
+      // Sorting
+      const sortBy = req.query.sort ? req.query.sort.split(',').join(' ') : '-datetime';
+      
+      console.log("Public API - Query:", query);
+      console.log(typeof(query));
+
+      // Execute query
+      const animals = await Animal.find(query)
+        .sort(sortBy)
+        .skip(startIndex)
+        .limit(limit);
+  
+      // Create audit log for filtered animal search
+      await createAuditLog({
+        action: 'ANIMAL_FILTER_SEARCH',
+        actionType: 'READ',
+        user: req.user ? req.user.id : null,
+        targetModel: 'Animal',
+        targetId: null,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: { 
+          filterType,
+          additionalFilters,
+          pagination: { page, limit },
+          sort: sortBy,
+          resultCount: animals.length
+        }
+      });
+  
+      res.status(200).json({
+        success: true,
+        count: animals.length,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit)
+        },
+        data: animals
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: error.message 
       });
     }
-    
-    // Add pagination
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
-    
-    // Get animals with limited fields
-    const animals = await Animal.find(query)
-      .select('name animal_type breed color age_upon_outcome sex_upon_outcome outcome_type')
-      .skip(skip)
-      .limit(limit)
-      .sort('-datetime');
-    
-    // Get total count for pagination
-    const total = await Animal.countDocuments(query);
-    
-    // Log access (anonymously)
-    await createAuditLog({
-      action: 'PUBLIC_ANIMAL_FILTER_VIEW',
-      actionType: 'READ',
-      user: null,
-      targetModel: 'Animal',
-      targetId: null,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-      details: { filterType, page, limit }
-    });
-    
-    res.status(200).json({
-      success: true,
-      count: animals.length,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit)
-      },
-      data: animals
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
-  }
 });
 
 // Get single animal by ID (public, limited fields)
 router.get('/animals/:id', async (req, res) => {
   try {
     const animal = await Animal.findById(req.params.id)
-      .select('name animal_id animal_type breed color age_upon_outcome sex_upon_outcome outcome_type');
     
     if (!animal) {
       return res.status(404).json({

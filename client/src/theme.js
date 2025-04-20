@@ -1,28 +1,78 @@
-import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
+// src/theme.js
+import { createTheme } from '@mui/material/styles';
 
-const customConfig = defineConfig({
-  theme: {
-    tokens: {
-      colors: {
-        brand: {
-          50: { value: "#e6f5ff" },
-          100: { value: "#b3daff" },
-          200: { value: "#80c0ff" },
-          300: { value: "#4da6ff" },
-          400: { value: "#1a8cff" },
-          500: { value: "#0073e6" },
-          600: { value: "#0059b3" },
-          700: { value: "#004080" },
-          800: { value: "#00264d" },
-          900: { value: "#000d1a" },
+const theme = createTheme({
+  palette: {
+    primary: {
+      light: '#4da6ff', 
+      main: '#0073e6',  
+      dark: '#0059b3',  
+      contrastText: '#fff',
+    },
+    secondary: {
+      light: '#b3daff', 
+      main: '#80c0ff',  
+      dark: '#1a8cff',  
+      contrastText: '#000',
+    },
+    background: {
+      default: '#f7f7f7', 
+      paper: '#ffffff',
+    },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 600,
+    },
+    h2: {
+      fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 600,
+    },
+    h3: {
+      fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 600,
+    },
+    h4: {
+      fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 600,
+    },
+    h5: {
+      fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 600,
+    },
+    h6: {
+      fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontWeight: 600,
+    },
+    button: {
+      textTransform: 'none', 
+    },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
         },
       },
-      fonts: {
-        heading: { value: "Poppins, sans-serif" },
-        body: { value: "Inter, sans-serif" },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '6px',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 500,
+        },
       },
     },
   },
 });
 
-export const system = createSystem(defaultConfig, customConfig);
+export default theme;

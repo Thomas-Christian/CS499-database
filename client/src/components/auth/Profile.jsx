@@ -2,95 +2,140 @@
 import React from 'react';
 import { 
   Box, 
-  Card,
-  CardHeader, 
-  CardBody,
-  Heading, 
-  Text, 
+  Paper,
+  Typography, 
   Stack,
   Button,
-  Badge,
-  Flex,
-  Toaster
-} from '@chakra-ui/react';
+  Chip,
+  Divider,
+  Card,
+  CardHeader,
+  CardContent,
+  Snackbar,
+  Alert
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { blue } from '@mui/material/colors';
 
 const Profile = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [snackOpen, setSnackOpen] = React.useState(false);
 
   const handleLogout = async () => {
     await logout();
-    Toaster.create({
-      title: 'Logged out',
-      description: 'You have been successfully logged out.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    navigate('/login');
+    setSnackOpen(true);
+    setTimeout(() => {
+      navigate('/login');
+    }, 1500);
+  };
+
+  const handleCloseSnack = () => {
+    setSnackOpen(false);
   };
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin':
-        return 'red';
+        return 'error';
       case 'staff':
-        return 'green';
+        return 'success';
       case 'volunteer':
-        return 'blue';
+        return 'primary';
       default:
-        return 'gray';
+        return 'default';
     }
   };
 
   return (
-    <Flex justify="center" align="center" minH="calc(100vh - 200px)">
-      <Card w={{ base: '90%', md: '600px' }} boxShadow="lg">
-        <CardHeader bg="blue.600" borderTopRadius="md">
-          <Heading size="lg" color="white">User Profile</Heading>
-        </CardHeader>
-        <CardBody>
-          <Stack spacing={4}>
+    <Box 
+      display="flex" 
+      justifyContent="center" 
+      alignItems="center" 
+      minHeight="calc(100vh - 200px)"
+    >
+      <Card sx={{ width: { xs: '90%', md: '600px' }, boxShadow: 3 }}>
+        <CardHeader
+          title="User Profile"
+          sx={{ 
+            bgcolor: blue[600], 
+            color: 'white',
+            borderTopLeftRadius: 'inherit', 
+            borderTopRightRadius: 'inherit'
+          }}
+        />
+        <CardContent>
+          <Stack spacing={3}>
             <Box>
-              <Text fontWeight="bold" fontSize="lg">Name:</Text>
-              <Text fontSize="lg">{user?.name}</Text>
+              <Typography variant="subtitle1" fontWeight="bold">Name:</Typography>
+              <Typography variant="body1">{user?.name}</Typography>
             </Box>
             
-            <Box>
-              <Text fontWeight="bold" fontSize="lg">Email:</Text>
-              <Text fontSize="lg">{user?.email}</Text>
-            </Box>
+            <Divider />
             
             <Box>
-              <Text fontWeight="bold" fontSize="lg">Role:</Text>
-              <Badge colorScheme={getRoleBadgeColor(user?.role)} fontSize="1em" px={2} py={1} borderRadius="md">
-                {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
-              </Badge>
+              <Typography variant="subtitle1" fontWeight="bold">Email:</Typography>
+              <Typography variant="body1">{user?.email}</Typography>
             </Box>
             
+            <Divider />
+            
             <Box>
-              <Text fontWeight="bold" fontSize="lg">Account Created:</Text>
-              <Text fontSize="lg">
+              <Typography variant="subtitle1" fontWeight="bold">Role:</Typography>
+              <Chip 
+                label={user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                color={getRoleBadgeColor(user?.role)}
+                sx={{ mt: 0.5, fontWeight: 500 }}
+              />
+            </Box>
+            
+            <Divider />
+            
+            <Box>
+              <Typography variant="subtitle1" fontWeight="bold">Account Created:</Typography>
+              <Typography variant="body1">
                 {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-              </Text>
+              </Typography>
             </Box>
+            
+            <Divider />
             
             <Box>
-              <Text fontWeight="bold" fontSize="lg">Last Login:</Text>
-              <Text fontSize="lg">
+              <Typography variant="subtitle1" fontWeight="bold">Last Login:</Typography>
+              <Typography variant="body1">
                 {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'}
-              </Text>
+              </Typography>
             </Box>
             
-            <Button colorScheme="red" onClick={handleLogout}>
+            <Button 
+              variant="contained" 
+              color="error" 
+              onClick={handleLogout}
+              sx={{ mt: 2 }}
+            >
               Logout
             </Button>
           </Stack>
-        </CardBody>
+        </CardContent>
       </Card>
-    </Flex>
+
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={3000}
+        onClose={handleCloseSnack}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnack} 
+          severity="success" 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          You have been successfully logged out.
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

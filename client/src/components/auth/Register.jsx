@@ -4,16 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Card,
-  Flex,
-  Heading,
-  Input,
+  CardHeader,
+  CardContent,
+  Box,
+  Typography,
+  TextField,
   Stack,
-  Text,
   Alert,
-  Fieldset,
-  Field,
-} from '@chakra-ui/react';
-
+  Divider,
+  Link,
+  FormControl,
+  InputLabel
+} from '@mui/material';
+import { blue } from '@mui/material/colors';
 import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
@@ -61,105 +64,132 @@ const Register = () => {
   };
 
   return (
-    <Flex justify="center" align="center" minH="calc(100vh - 200px)">
-      <Card.Root w={{ base: '90%', md: '450px' }} boxShadow="lg">
-        <Card.Header bg="blue.600" borderTopRadius="md">
-          <Heading size="lg" color="white" textAlign="center">
-            Register
-          </Heading>
-        </Card.Header>
-        <Card.Body p={6}>
+    <Box 
+      display="flex" 
+      justifyContent="center" 
+      alignItems="center" 
+      minHeight="calc(100vh - 200px)"
+    >
+      <Card sx={{ width: { xs: '90%', md: '450px' }, boxShadow: 3 }}>
+        <CardHeader
+          title="Register"
+          sx={{ 
+            bgcolor: blue[600], 
+            color: 'white',
+            borderTopLeftRadius: 'inherit', 
+            borderTopRightRadius: 'inherit',
+            textAlign: 'center'
+          }}
+        />
+        <CardContent sx={{ p: 3 }}>
           <form onSubmit={onSubmit}>
-            <Stack spacing={4}>
+            <Stack spacing={2.5}>
               {formError && (
-                <Alert status="error" borderRadius="md">
+                <Alert severity="error" sx={{ borderRadius: 1 }}>
                   {formError}
                 </Alert>
               )}
 
-              <Fieldset.Root>
-                <Fieldset.Legend>Personal Information</Fieldset.Legend>
-                <Fieldset.Content>
-                  <Field.Root>
-                    <Field.Label>Name</Field.Label>
-                    <Input
-                      type="text"
-                      name="name"
-                      value={name}
-                      onChange={onChange}
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </Field.Root>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Personal Information
+              </Typography>
+              
+              <FormControl fullWidth>
+                <TextField
+                  label="Name"
+                  type="text"
+                  name="name"
+                  value={name}
+                  onChange={onChange}
+                  placeholder="Enter your full name"
+                  variant="outlined"
+                  fullWidth
+                  required
+                  margin="dense"
+                />
+              </FormControl>
 
-                  <Field.Root>
-                    <Field.Label>Email Address</Field.Label>
-                    <Input
-                      type="email"
-                      name="email"
-                      value={email}
-                      onChange={onChange}
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </Field.Root>
-                </Fieldset.Content>
-              </Fieldset.Root>
+              <FormControl fullWidth>
+                <TextField
+                  label="Email Address"
+                  type="email"
+                  name="email"
+                  value={email}
+                  onChange={onChange}
+                  placeholder="Enter your email"
+                  variant="outlined"
+                  fullWidth
+                  required
+                  margin="dense"
+                />
+              </FormControl>
 
-              <Fieldset.Root>
-                <Fieldset.Legend>Security</Fieldset.Legend>
-                <Fieldset.Content>
-                  <Field.Root>
-                    <Field.Label>Password</Field.Label>
-                    <Input
-                      type="password"
-                      name="password"
-                      value={password}
-                      onChange={onChange}
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </Field.Root>
+              <Divider sx={{ my: 1.5 }} />
+              
+              <Typography variant="subtitle1" fontWeight="bold">
+                Security
+              </Typography>
 
-                  <Field.Root>
-                    <Field.Label>Confirm Password</Field.Label>
-                    <Input
-                      type="password"
-                      name="confirmPassword"
-                      value={confirmPassword}
-                      onChange={onChange}
-                      placeholder="Confirm your password"
-                      required
-                    />
-                  </Field.Root>
-                </Fieldset.Content>
-              </Fieldset.Root>
+              <FormControl fullWidth>
+                <TextField
+                  label="Password"
+                  type="password"
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                  placeholder="Enter your password"
+                  variant="outlined"
+                  fullWidth
+                  required
+                  margin="dense"
+                  helperText="Password must be at least 8 characters"
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <TextField
+                  label="Confirm Password"
+                  type="password"
+                  name="confirmPassword"
+                  value={confirmPassword}
+                  onChange={onChange}
+                  placeholder="Confirm your password"
+                  variant="outlined"
+                  fullWidth
+                  required
+                  margin="dense"
+                />
+              </FormControl>
 
               <Button
                 type="submit"
-                colorScheme="blue"
-                size="lg"
-                fontSize="md"
-                isLoading={loading}
+                variant="contained"
+                color="primary"
+                size="large"
+                disabled={loading}
+                sx={{ mt: 1 }}
               >
-                Register
+                {loading ? 'Registering...' : 'Register'}
               </Button>
 
-              <Text textAlign="center">
-                Already have an account?{' '}
-                <Button
-                  variant="link"
-                  colorScheme="blue"
+              <Box textAlign="center" mt={1}>
+                <Typography variant="body1" component="span">
+                  Already have an account?{' '}
+                </Typography>
+                <Link 
+                  component="button" 
+                  variant="body1" 
+                  color="primary"
                   onClick={() => navigate('/login')}
                 >
                   Login
-                </Button>
-              </Text>
+                </Link>
+              </Box>
             </Stack>
           </form>
-        </Card.Body>
-      </Card.Root>
-    </Flex>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

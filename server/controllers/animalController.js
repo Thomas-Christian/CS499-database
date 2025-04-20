@@ -105,28 +105,25 @@ exports.getAnimals = async (req, res) => {
 // @route   GET /api/animals/filter/:filterType
 // @access  Private
 exports.getFilteredAnimals = async (req, res) => {
+
   try {
     const { filterType } = req.params;
+
     let query = {};
 
-    if (filterType === 'Water') {
-      query = {
-        breed: { $in: ["Labrador Retriever Mix", "Chesapeake Bay Retriever", "Newfoundland"] },
-        sex_upon_outcome: "Intact Female",
-        age_upon_outcome_in_weeks: { $gte: 26, $lte: 156 }
-      };
-    } else if (filterType === 'Mountain/Wilderness') {
-      query = {
-        breed: { $in: ["German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"] },
-        sex_upon_outcome: "Intact Male",
-        age_upon_outcome_in_weeks: { $gte: 26, $lte: 156 }
-      };
-    } else if (filterType === 'Disaster/Tracking') {
-      query = {
-        breed: { $in: ["Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"] },
-        sex_upon_outcome: "Intact Male",
-        age_upon_outcome_in_weeks: { $gte: 20, $lte: 300 }
-      };
+      const waterBreeds = ["Labrador Retriever Mix", "Chesapeake Bay Retriever", "Newfoundland"]
+      const mountianWildernessBreeds = ["German Shepherd", "Alaskan Malamute", "Old English Sheepdog", "Siberian Husky", "Rottweiler"]
+      const disasterTrackingBreeds = ["Doberman Pinscher", "German Shepherd", "Golden Retriever", "Bloodhound", "Rottweiler"]
+  
+      if (filterType === 'Water') {
+        query = { $or: waterBreeds.map(breed => ({ breed })) }
+
+      } else if (filterType === 'Mountain/Wilderness') {
+        query = { $or: mountianWildernessBreeds.map(breed => ({ breed })) }
+
+      } else if (filterType === 'Disaster/Tracking') {
+        query = { $or: disasterTrackingBreeds.map(breed => ({ breed })) }
+        
     } else {
       return res.status(400).json({
         success: false,

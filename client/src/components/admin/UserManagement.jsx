@@ -1,32 +1,39 @@
 // src/components/admin/UserManagement.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Box,
   Button,
-  Flex,
-  Heading,
-  Text,
-  Spinner,
-  Badge,
-  Table,
   Dialog,
-  useDisclosure,
-  IconButton,
-  Portal,
-  Fieldset, 
-  Field,
-  Input,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Paper,
+  Typography,
+  Chip,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  FormControl,
+  InputLabel,
   Select,
-} from '@chakra-ui/react';
+  MenuItem,
+  Stack,
+  IconButton,
+  Snackbar,
+  Alert as MuiAlert
+} from '@mui/material';
 
-import { LuX } from 'react-icons/lu';
-
+import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../../context/AuthContext';
-import { toaster } from '../ui/toaster';
 
-
-var USERS_API='http://localhost:5000/api/users'
+const USERS_API='http://localhost:5000/api/users';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -34,11 +41,19 @@ const UserManagement = () => {
   const [error, setError] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'volunteer' });
+  
+  // Dialog states
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Snackbar state for notifications
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info"
+  });
 
   const { token } = useAuth();
-  const formDialog = useDisclosure();
-  const deleteDialog = useDisclosure();
-  const cancelRef = useRef();
 
   useEffect(() => {
     async function fetchUsers() {
@@ -49,7 +64,7 @@ const UserManagement = () => {
         setError(null);
       } catch (err) {
         setError('Failed to fetch users');
-        toaster.create({ title: 'Error', description: 'Failed to fetch users', status: 'error', isClosable: true });
+        showNotification('Failed to fetch users', 'error');
       } finally {
         setLoading(false);
       }
@@ -65,12 +80,35 @@ const UserManagement = () => {
       ? { name: user.name, email: user.email, password: '', role: user.role }
       : { name: '', email: '', password: '', role: 'volunteer' }
     );
-    formDialog.onOpen();
+    setFormDialogOpen(true);
   };
 
-  const confirmDelete = user => { setSelectedUser(user); deleteDialog.onOpen(); };
+  const closeForm = () => {
+    setFormDialogOpen(false);
+  };
 
-  const handleSubmit = async e => {
+  const confirmDelete = user => { 
+    setSelectedUser(user); 
+    setDeleteDialogOpen(true); 
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({...snackbar, open: false});
+  };
+
+  const showNotification = (message, severity = "info") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const payload = { ...formData };
@@ -78,15 +116,15 @@ const UserManagement = () => {
       if (selectedUser) {
         await axios.put(`${USERS_API}/${selectedUser._id}`, payload, { headers: { Authorization: `Bearer ${token}` } });
         setUsers(u => u.map(x => x._id === selectedUser._id ? { ...x, ...payload } : x));
-        toaster.create({ title: 'Updated', status: 'success', isClosable: true });
+        showNotification('User updated successfully', 'success');
       } else {
         const res = await axios.post(USERS_API, payload, { headers: { Authorization: `Bearer ${token}` } });
         setUsers(u => [...u, res.data.data]);
-        toaster.create({ title: 'Created', status: 'success', isClosable: true });
+        showNotification('User created successfully', 'success');
       }
-      formDialog.onClose();
+      closeForm();
     } catch (err) {
-      toaster.create({ title: 'Error', description: err.response?.data?.message || 'Save failed', status: 'error', isClosable: true });
+      showNotification(err.response?.data?.message || 'Save failed', 'error');
     }
   };
 
@@ -94,130 +132,201 @@ const UserManagement = () => {
     try {
       await axios.delete(`${USERS_API}/${selectedUser._id}`, { headers: { Authorization: `Bearer ${token}` } });
       setUsers(u => u.filter(x => x._id !== selectedUser._id));
-      toaster.create({ title: 'Deleted', status: 'success', isClosable: true });
-      deleteDialog.onClose();
+      showNotification('User deleted successfully', 'success');
+      closeDeleteDialog();
     } catch (err) {
-      toaster.create({ title: 'Error', description: err.response?.data?.message || 'Delete failed', status: 'error', isClosable: true });
+      showNotification(err.response?.data?.message || 'Delete failed', 'error');
     }
   };
 
-  const getBadgeColor = role => ({ admin: 'red', staff: 'green', volunteer: 'blue' }[role] || 'gray');
+  const getBadgeColor = role => {
+    switch(role) {
+      case 'admin': return 'error';
+      case 'staff': return 'success';
+      case 'volunteer': return 'primary';
+      default: return 'default';
+    }
+  };
 
-  if (loading) return <Flex justify="center" align="center" h="400px"><Spinner /></Flex>;
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Box p={4} bg="white" boxShadow="md" borderRadius="lg">
-      <Flex justify="space-between" align="center" mb={5}>
-        <Heading size="lg">User Management</Heading>
-        <Button onClick={() => openForm(null)} colorScheme="blue">Add New User</Button>
-      </Flex>
+    <Paper elevation={2} sx={{ p: 3, borderRadius: 1 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5">User Management</Typography>
+        <Button 
+          onClick={() => openForm(null)} 
+          variant="contained" 
+          color="primary"
+        >
+          Add New User
+        </Button>
+      </Box>
 
-      {error && <Text color="red.500" mb={4}>{error}</Text>}
+      {error && <Typography color="error.main" mb={2}>{error}</Typography>}
 
-      <Table.ScrollArea>
-        <Table.Root variant="simple" size="sm">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Name</Table.ColumnHeader>
-              <Table.ColumnHeader>Email</Table.ColumnHeader>
-              <Table.ColumnHeader>Role</Table.ColumnHeader>
-              <Table.ColumnHeader>Created At</Table.ColumnHeader>
-              <Table.ColumnHeader>Last Login</Table.ColumnHeader>
-              <Table.ColumnHeader>Actions</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Role</TableCell>
+              <TableCell>Created At</TableCell>
+              <TableCell>Last Login</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {users.length ? users.map(user => (
-              <Table.Row key={user._id}>
-                <Table.Cell>{user.name}</Table.Cell>
-                <Table.Cell>{user.email}</Table.Cell>
-                <Table.Cell><Badge colorScheme={getBadgeColor(user.role)}>{user.role}</Badge></Table.Cell>
-                <Table.Cell>{new Date(user.createdAt).toLocaleDateString()}</Table.Cell>
-                <Table.Cell>{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</Table.Cell>
-                <Table.Cell>
-                  <Button size="sm" onClick={() => openForm(user)}>Edit</Button>
-                  <Button size="sm" ml={2} colorScheme="red" onClick={() => confirmDelete(user)}>Delete</Button>
-                </Table.Cell>
-              </Table.Row>
+              <TableRow key={user._id} hover>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={user.role} 
+                    color={getBadgeColor(user.role)} 
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" variant="outlined" onClick={() => openForm(user)}>
+                      Edit
+                    </Button>
+                    <Button size="small" color="error" variant="outlined" onClick={() => confirmDelete(user)}>
+                      Delete
+                    </Button>
+                  </Stack>
+                </TableCell>
+              </TableRow>
             )) : (
-              <Table.Row><Table.Cell colSpan={6} textAlign="center">No users found</Table.Cell></Table.Row>
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  No users found
+                </TableCell>
+              </TableRow>
             )}
-          </Table.Body>
-        </Table.Root>
-      </Table.ScrollArea>
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {/* Add/Edit Form */}
-      <Dialog.Root open={formDialog.isOpen} onOpenChange={formDialog.onToggle}>
-        <Dialog.Trigger asChild hidden />
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>{selectedUser ? 'Edit User' : 'Add New User'}</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" icon={<LuX />} ref={cancelRef} />
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <form onSubmit={handleSubmit}>
-                <Fieldset.Root>
-                  <Fieldset.Legend>Account Details</Fieldset.Legend>
-                  <Fieldset.Content>
-                    <Field.Root required>
-                      <Field.Label>Name</Field.Label>
-                      <Input name="name" value={formData.name} onChange={handleChange} />
-                    </Field.Root>
-                    <Field.Root required>
-                      <Field.Label>Email</Field.Label>
-                      <Input name="email" value={formData.email} onChange={handleChange} />
-                    </Field.Root>
-                    <Field.Root required={!selectedUser}>
-                      <Field.Label>{selectedUser ? 'New Password (optional)' : 'Password'}</Field.Label>
-                      <Input name="password" type="password" value={formData.password} onChange={handleChange} />
-                    </Field.Root>
-                    <Field.Root required>
-                      <Field.Label>Role</Field.Label>
-                      <Select name="role" value={formData.role} onChange={handleChange}>
-                        <option value="admin">Admin</option>
-                        <option value="staff">Staff</option>
-                        <option value="volunteer">Volunteer</option>
-                      </Select>
-                    </Field.Root>
-                  </Fieldset.Content>
-                </Fieldset.Root>
-                <Flex justify="flex-end" mt={4}>
-                  <Button variant="ghost" onClick={formDialog.onClose}>Cancel</Button>
-                  <Button type="submit" colorScheme="blue" ml={3}>{selectedUser ? 'Update' : 'Create'}</Button>
-                </Flex>
-              </form>
-            </Dialog.Body>
-          </Dialog.Content>
-        </Portal>
-      </Dialog.Root>
+      {/* Add/Edit Form Dialog */}
+      <Dialog open={formDialogOpen} onClose={closeForm} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {selectedUser ? 'Edit User' : 'Add New User'}
+          <IconButton
+            aria-label="close"
+            onClick={closeForm}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={2} mt={1}>
+              <Typography variant="subtitle1" fontWeight="medium">Account Details</Typography>
+              
+              <TextField
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="normal"
+              />
+              
+              <TextField
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                fullWidth
+                required
+                margin="normal"
+              />
+              
+              <TextField
+                label={selectedUser ? "New Password (optional)" : "Password"}
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                fullWidth
+                required={!selectedUser}
+                margin="normal"
+              />
+              
+              <FormControl fullWidth margin="normal" required>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  label="Role"
+                >
+                  <MenuItem value="admin">Admin</MenuItem>
+                  <MenuItem value="staff">Staff</MenuItem>
+                  <MenuItem value="volunteer">Volunteer</MenuItem>
+                </Select>
+              </FormControl>
+            </Stack>
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeForm} color="inherit">Cancel</Button>
+          <Button onClick={handleSubmit} color="primary" variant="contained">
+            {selectedUser ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Delete Confirmation */}
-      <Dialog.Root open={deleteDialog.isOpen} onOpenChange={deleteDialog.onToggle}>
-        <Dialog.Trigger asChild hidden />
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>Delete User</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="Close" icon={<LuX />} ref={cancelRef} />
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Text>Are you sure you want to delete {selectedUser?.name}? This action cannot be undone.</Text>
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Button variant="ghost" onClick={deleteDialog.onClose}>Cancel</Button>
-              <Button colorScheme="red" ml={3} onClick={handleDelete}>Delete</Button>
-            </Dialog.Footer>
-          </Dialog.Content>
-        </Portal>
-      </Dialog.Root>
-    </Box>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog}>
+        <DialogTitle>Delete User</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete {selectedUser?.name}? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog} color="inherit">Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
+    </Paper>
   );
 };
 

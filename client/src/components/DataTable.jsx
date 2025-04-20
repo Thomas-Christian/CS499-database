@@ -3,25 +3,37 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Stack,
-  Spinner,
+  CircularProgress,
   Button,
-  IconButton,
-  ButtonGroup,
-  Table,
-  Heading,
+  Typography,
   Pagination,
   Box,
-  Badge
-} from "@chakra-ui/react";
-
-// Import the Toaster component and toaster function
-import { toaster } from "../components/ui/toaster";
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+  Divider,
+  Snackbar
+} from "@mui/material";
+import MuiAlert from '@mui/material/Alert';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import CloseIcon from '@mui/icons-material/Close';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const DataTable = ({ filterType }) => {
-
-  var ANIMAL_API='http://localhost:5000/api/animals' 
-  var PUBLIC_ANIMAL_API='http://localhost:5000/api/public/animals'
+const DataTable = () => {
+  var ANIMAL_API='http://localhost:5000/api/animals';
+  var PUBLIC_ANIMAL_API='http://localhost:5000/api/public/animals';
 
   // Define the number of items per page
   const itemsPerPage = 7;
@@ -35,10 +47,50 @@ const DataTable = ({ filterType }) => {
   const [totalItems, setTotalItems] = useState(0);
   const [selectedAnimal, setSelectedAnimal] = useState(null);
   
+  // Snackbar state for notifications
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info"
+  });
+  
   // Get auth context
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the current filter from the URL query params
+  const params = new URLSearchParams(location.search);
+  const currentFilter = params.get('filter') || '';
 
-  // Fetch animals based on authentication status
+  const handleFilterChange = (e) => {
+    const filterValue = e.target.value;
+    
+    // Update the URL with the selected filter
+    if (filterValue) {
+      navigate(`?filter=${filterValue}`);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const clearFilter = () => {
+    navigate('/');
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({...snackbar, open: false});
+  };
+
+  const showNotification = (message, severity = "info") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // Fetch animals based on authentication status and filter
   useEffect(() => {
     const fetchAnimals = async () => {
       try {
@@ -46,11 +98,11 @@ const DataTable = ({ filterType }) => {
         let endpoint;
         let config = {};
         
-        // Determine the endpoint based on filterType and authentication
+        // Determine the endpoint based on currentFilter and authentication
         if (isAuthenticated) {
           // Authenticated users use the protected API
-          endpoint = filterType 
-            ? `${ANIMAL_API}/filter/${filterType}`
+          endpoint = currentFilter 
+            ? `${ANIMAL_API}/filter/${currentFilter}`
             : `${ANIMAL_API}`;
           
           config = {
@@ -64,8 +116,8 @@ const DataTable = ({ filterType }) => {
           };
         } else {
           // Unauthenticated users use the public API
-          endpoint = filterType 
-            ? `${PUBLIC_ANIMAL_API}/filter/${filterType}`
+          endpoint = currentFilter 
+            ? `${PUBLIC_ANIMAL_API}/filter/${currentFilter}`
             : `${PUBLIC_ANIMAL_API}`;
           
           config = {
@@ -86,139 +138,234 @@ const DataTable = ({ filterType }) => {
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to fetch animals. Please try again later.');
-        toaster.create({
-          title: 'Error',
-          description: 'Failed to fetch animals. Please try again later.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
+        showNotification('Failed to fetch animals. Please try again later.', 'error');
       } finally {
         setLoading(false);
       }
     };
 
     fetchAnimals();
-  }, [filterType, page, isAuthenticated, token, ANIMAL_API, PUBLIC_ANIMAL_API]);
+  }, [currentFilter, page, isAuthenticated, token, ANIMAL_API, PUBLIC_ANIMAL_API]);
 
   // Get outcome badge color
   const getOutcomeBadgeColor = (outcome) => {
     switch (outcome) {
       case 'Adoption':
-        return 'green';
+        return 'success';
       case 'Transfer':
-        return 'blue';
+        return 'primary';
       case 'Return to Owner':
-        return 'purple';
+        return 'secondary';
       case 'Euthanasia':
-        return 'red';
+        return 'error';
       case 'Died':
-        return 'gray';
+        return 'default';
       default:
-        return 'teal';
+        return 'info';
+    }
+  };
+
+  // Get role badge color
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case 'admin':
+        return 'error';
+      case 'staff':
+        return 'success';
+      case 'volunteer':
+        return 'primary';
+      default:
+        return 'default';
     }
   };
 
   if (loading && page === 1) {
     return (
-      <Stack justify="center" align="center" height="200px">
-        <Spinner size="xl" thickness="4px" speed="0.65s" color="blue.500" />
-      </Stack>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="200px"
+      >
+        <CircularProgress size={40} thickness={4} color="primary" />
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <Box p={4} bg="red.50" borderRadius="lg" boxShadow="md">
-        <Heading size="md" color="red.500">{error}</Heading>
+      <Box p={2} sx={{ bgcolor: '#fff1f0', borderRadius: 1, boxShadow: 1 }}>
+        <Typography variant="h6" color="error">
+          {error}
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Box p={4} bg="white" borderRadius="lg" boxShadow="md">
-      <Stack width="full" gap="5">
-        <Heading size="xl">Animals</Heading>
-
-        {/* The Table using Chakra UI's new composable API */}
-        <Table.Root size="sm" variant="outline" {...{ overflowX: "auto" }}>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>ID</Table.ColumnHeader>
-              <Table.ColumnHeader>Name</Table.ColumnHeader>
-              <Table.ColumnHeader>Type</Table.ColumnHeader>
-              <Table.ColumnHeader>Breed</Table.ColumnHeader>
-              <Table.ColumnHeader>Color</Table.ColumnHeader>
-              <Table.ColumnHeader>Age</Table.ColumnHeader>
-              <Table.ColumnHeader>Sex</Table.ColumnHeader>
-              <Table.ColumnHeader>Outcome</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {animals.length > 0 ? (
-              animals.map((animal) => (
-                <Table.Row
-                  key={animal.animal_id || animal._id}
-                  onClick={() => setSelectedAnimal(animal)}
-                  _hover={{ bg: "gray.50", cursor: "pointer" }}
-                  transition="background-color 0.2s"
-                >
-                  <Table.Cell>{animal.animal_id}</Table.Cell>
-                  <Table.Cell>{animal.name || 'Unknown'}</Table.Cell>
-                  <Table.Cell>{animal.animal_type}</Table.Cell>
-                  <Table.Cell>{animal.breed}</Table.Cell>
-                  <Table.Cell>{animal.color}</Table.Cell>
-                  <Table.Cell>{animal.age_upon_outcome}</Table.Cell>
-                  <Table.Cell>{animal.sex_upon_outcome}</Table.Cell>
-                  <Table.Cell>
-                    <Badge colorScheme={getOutcomeBadgeColor(animal.outcome_type)}>
-                      {animal.outcome_type}
-                    </Badge>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            ) : (
-              <Table.Row>
-                <Table.Cell colSpan={8} textAlign="center" py={4}>
-                  No animals found
-                </Table.Cell>
-              </Table.Row>
+    <Paper 
+      elevation={2} 
+      sx={{ 
+        p: 3, 
+        borderRadius: 1,
+        boxShadow: 1
+      }}
+    >
+      <Stack spacing={3} width="100%">
+        {/* Header with title and filter */}
+        <Grid container alignItems="center" spacing={2}>
+          <Grid item xs={12} md={4}>
+            <Typography variant="h4">Animals</Typography>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel id="filter-label">Filter by Training Type</InputLabel>
+              <Select
+                labelId="filter-label"
+                id="filter-select"
+                value={currentFilter}
+                onChange={handleFilterChange}
+                label="Filter by Training Type"
+                startAdornment={<FilterAltIcon sx={{ mr: 1, ml: -0.5, color: 'action.active' }} />}
+              >
+                <MenuItem value="">All Animals</MenuItem>
+                <MenuItem value="Water Rescue">Water Rescue</MenuItem>
+                <MenuItem value="Mountain%2FWilderness">Mountain/Wilderness</MenuItem>
+                <MenuItem value="Disaster-Tracking">Disaster-Tracking</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            {isAuthenticated && user && (
+              <Box display="flex" alignItems="center" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} gap={1}>
+                <Typography variant="body2">Logged in as:</Typography>
+                <Typography variant="body2" fontWeight="bold">{user.name}</Typography>
+                <Chip 
+                  label={user.role}
+                  color={getRoleBadgeColor(user.role)}
+                  size="small"
+                  sx={{ fontWeight: 500 }}
+                />
+              </Box>
             )}
-          </Table.Body>
-        </Table.Root>
+          </Grid>
+        </Grid>
+        
+        {/* Active filter indicator */}
+        {currentFilter && (
+          <Alert 
+            severity="info" 
+            sx={{ mt: 1 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={clearFilter}
+              >
+                Clear
+              </Button>
+            }
+          >
+            <Typography variant="body2">
+              <strong>Active Filter:</strong> {currentFilter}
+            </Typography>
+          </Alert>
+        )}
 
-        <Pagination.Root 
-          count={totalPages}
-          page={page}
-          onPageChange={(newPage) => setPage(newPage)}
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Breed</TableCell>
+                <TableCell>Color</TableCell>
+                <TableCell>Age</TableCell>
+                <TableCell>Sex</TableCell>
+                <TableCell>Outcome</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {animals.length > 0 ? (
+                animals.map((animal) => (
+                  <TableRow
+                    key={animal.animal_id || animal._id}
+                    onClick={() => setSelectedAnimal(animal)}
+                    hover
+                    sx={{ 
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                  >
+                    <TableCell>{animal.animal_id}</TableCell>
+                    <TableCell>{animal.name || 'Unknown'}</TableCell>
+                    <TableCell>{animal.animal_type}</TableCell>
+                    <TableCell>{animal.breed}</TableCell>
+                    <TableCell>{animal.color}</TableCell>
+                    <TableCell>{animal.age_upon_outcome}</TableCell>
+                    <TableCell>{animal.sex_upon_outcome}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={animal.outcome_type}
+                        color={getOutcomeBadgeColor(animal.outcome_type)}
+                        size="small"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 2 }}>
+                    No animals found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          flexWrap="wrap"
         >
-          <Stack direction="row" justify="space-between" align="center">
-            <Box>
-              Showing {animals.length} of {totalItems} animals
-            </Box>
-            
-            <ButtonGroup variant="ghost" size="sm" wrap="wrap">
-              <Pagination.PrevTrigger asChild>
-                <Button disabled={page === 1}> {"<"} </Button>
-              </Pagination.PrevTrigger>
-
-              <Pagination.Items
-                render={(page) => (
-                  <IconButton
-                    variant={{ base: "ghost", _selected: "outline" }}
-                    children={page.value}
-                  />
-                )}
-              />
-
-              <Pagination.NextTrigger asChild>
-                <Button disabled={page === totalPages}> {">"} </Button> 
-              </Pagination.NextTrigger>
-            </ButtonGroup>
-          </Stack>
-        </Pagination.Root>
+          <Typography variant="body2">
+            Showing {animals.length} of {totalItems} animals
+          </Typography>
+          
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, newPage) => setPage(newPage)}
+            color="primary"
+            size="small"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
       </Stack>
-    </Box>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
+    </Paper>
   );
 };
 

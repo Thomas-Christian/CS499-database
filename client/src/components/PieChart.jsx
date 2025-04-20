@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Heading } from '@chakra-ui/react';
+import { Box, Typography, Paper } from '@mui/material';
 import Plot from 'react-plotly.js';
+import { blue } from '@mui/material/colors';
 
 const PieChart = ({ animals }) => {
   const [chartData, setChartData] = useState({});
@@ -29,9 +30,9 @@ const PieChart = ({ animals }) => {
         insidetextorientation: 'radial',
         marker: {
           colors: [
-            '#4299E1', '#3182CE', '#2B6CB0', '#2C5282', 
-            '#63B3ED', '#90CDF4', '#BEE3F8', '#EBF8FF',
-            '#1A365D', '#2A4365', '#2B6CB0', '#3182CE'
+            blue[400], blue[600], blue[800], blue[900], 
+            blue[300], blue[200], blue[100], blue[50],
+            blue[900], blue[800], blue[700], blue[600]
           ]
         }
       });
@@ -40,33 +41,40 @@ const PieChart = ({ animals }) => {
 
   if (!animals || animals.length === 0) {
     return (
-      <Box 
-        bg="white" 
-        p={4} 
-        borderRadius="lg" 
-        boxShadow="md"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        h="100%"
+      <Paper
+        elevation={2}
+        sx={{
+          p: 2,
+          borderRadius: 1,
+          height: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
       >
-        No data available for chart
-      </Box>
+        <Typography variant="body1">No data available for chart</Typography>
+      </Paper>
     );
   }
 
   return (
-    <Box 
-      bg="white" 
-      p={4} 
-      borderRadius="lg" 
-      boxShadow="md"
-      h="100%"
+    <Paper
+      elevation={2}
+      sx={{
+        p: 2,
+        borderRadius: 1,
+        height: '100%'
+      }}
     >
-      <Heading size="md" mb={4} color="blue.600">
+      <Typography 
+        variant="h6" 
+        color="primary" 
+        gutterBottom
+        sx={{ mb: 2 }}
+      >
         Animal Breed Distribution
-      </Heading>
-      <Box h="calc(100% - 40px)">
+      </Typography>
+      <Box sx={{ height: 'calc(100% - 40px)' }}>
         <Plot
           data={[chartData]}
           layout={{
@@ -84,7 +92,7 @@ const PieChart = ({ animals }) => {
           config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['toImage'] }}
         />
       </Box>
-    </Box>
+    </Paper>
   );
 };
 

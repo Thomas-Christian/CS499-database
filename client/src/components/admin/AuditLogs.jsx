@@ -3,32 +3,41 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Box,
-  Flex,
-  Heading,
+  Paper,
+  Typography,
   Stack,
-  Text,
-  Spinner,
+  CircularProgress,
   Button,
   ButtonGroup,
-  Input,
+  TextField,
   Grid,
-  GridItem,
   IconButton,
-  Badge,
-  Code,
+  Chip,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Pagination,
-  Select,
-  useDisclosure,
+  MenuItem,
+  Collapse,
   Dialog,
-  Portal,
-} from '@chakra-ui/react'; 
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Snackbar,
+  Alert as MuiAlert,
+  InputLabel,
+  Select,
+  FormControl,
+  Divider
+} from '@mui/material';
 
-import { toaster } from "../ui/toaster";
-
-import { LuChevronDown, LuChevronUp, LuSearch, LuX} from 'react-icons/lu';
-import { Collapsible } from '@chakra-ui/react';
-import { Fieldset } from '@chakra-ui/react';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../../context/AuthContext';
 
 const AuditLogs = () => {
@@ -39,10 +48,18 @@ const AuditLogs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedLog, setSelectedLog] = useState(null);
   const [filters, setFilters] = useState({ action: '', targetModel: '', startDate: '', endDate: '' });
+  
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  
+  // Snackbar state for notifications
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info"
+  });
 
   const { token } = useAuth();
-  const { isOpen: isFiltersOpen, onToggle: onToggleFilters } = useDisclosure();
-  const dialog = useDisclosure();
   const cancelRef = useRef();
 
   useEffect(() => {
@@ -51,7 +68,7 @@ const AuditLogs = () => {
         setLoading(true);
         const params = { page, limit: 20, ...filters };
         Object.keys(params).forEach(key => !params[key] && delete params[key]);
-        const res = await axios.get('/api/audit', {
+        const res = await axios.get('http://localhost:5000/api/audit', {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });
@@ -61,7 +78,7 @@ const AuditLogs = () => {
       } catch (err) {
         console.error(err);
         setError('Failed to fetch audit logs');
-        toaster.create({ title: 'Error', description: 'Failed to fetch audit logs', status: 'error', isClosable: true });
+        showNotification('Failed to fetch audit logs', 'error');
       } finally {
         setLoading(false);
       }
@@ -69,116 +86,282 @@ const AuditLogs = () => {
     fetchLogs();
   }, [token, page, filters]);
 
-  const handleFilterChange = e => { setFilters(f => ({ ...f, [e.target.name]: e.target.value })); setPage(1); };
-  const clearFilters = () => { setFilters({ action: '', targetModel: '', startDate: '', endDate: '' }); setPage(1); toaster.create({ title: 'Filters cleared', status: 'info', isClosable: true }); };
-  const viewLogDetails = log => { setSelectedLog(log); dialog.onOpen(); };
-  const getActionBadgeColor = t => ({ CREATE: 'green', READ: 'blue', UPDATE: 'orange', DELETE: 'red' }[t] || 'gray');
+  const handleFilterChange = e => { 
+    setFilters(f => ({ ...f, [e.target.name]: e.target.value })); 
+    setPage(1); 
+  };
+  
+  const clearFilters = () => { 
+    setFilters({ action: '', targetModel: '', startDate: '', endDate: '' }); 
+    setPage(1); 
+    showNotification('Filters cleared', 'info'); 
+  };
+  
+  const viewLogDetails = log => { 
+    setSelectedLog(log); 
+    setDetailsDialogOpen(true); 
+  };
+  
+  const getActionBadgeColor = action => {
+    switch(action) {
+      case 'CREATE': return 'success';
+      case 'READ': return 'primary';
+      case 'UPDATE': return 'warning';
+      case 'DELETE': return 'error';
+      default: return 'default';
+    }
+  };
+  
   const formatTs = ts => ts ? new Date(ts).toLocaleString() : 'N/A';
 
+  const toggleFilters = () => {
+    setIsFiltersOpen(!isFiltersOpen);
+  };
+
+  const closeDetailsDialog = () => {
+    setDetailsDialogOpen(false);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({...snackbar, open: false});
+  };
+
+  const showNotification = (message, severity = "info") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
   if (loading && page === 1 && !logs.length) {
-    return <Flex justify="center" align="center" height="400px"><Spinner size="xl" /></Flex>;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+        <CircularProgress size="xl" />
+      </Box>
+    );
   }
 
   return (
-    <Box p={4} bg="white" borderRadius="lg" boxShadow="md">
-      <Flex justify="space-between" align="center" mb={5}>
-        <Heading size="lg">Audit Logs</Heading>
-        <Button rightIcon={isFiltersOpen ? <LuChevronUp /> : <LuChevronDown />} variant="outline" onClick={onToggleFilters}>Filters</Button>
-      </Flex>
-
-      <Collapsible.Root isOpen={isFiltersOpen}>
-        <Fieldset.Root>
-          <Fieldset.Legend>Filter Options</Fieldset.Legend>
-          <Fieldset.Content>
-            <Grid templateColumns={{ base: '1fr', md: 'repeat(4, 1fr)' }} gap={4} mb={4}>
-              <GridItem><Select name="action" placeholder="Action" value={filters.action} onChange={handleFilterChange} /></GridItem>
-              <GridItem><Select name="targetModel" placeholder="Model" value={filters.targetModel} onChange={handleFilterChange}><option>User</option><option>Animal</option><option>Auth</option></Select></GridItem>
-              <GridItem><Input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} /></GridItem>
-              <GridItem><Input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} /></GridItem>
-            </Grid>
-            <Flex justify="flex-end" mb={4}>
-              <Button variant="ghost" mr={3} onClick={clearFilters}>Clear</Button>
-              <Button colorScheme="blue" leftIcon={<LuSearch />}>Apply</Button>
-            </Flex>
-          </Fieldset.Content>
-        </Fieldset.Root>
-      </Collapsible.Root>
-
-      {error && <Text color="red.500" mb={4}>{error}</Text>}
-
-      <Box overflowX="auto">
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Timestamp</Table.ColumnHeader>
-              <Table.ColumnHeader>Action</Table.ColumnHeader>
-              <Table.ColumnHeader>User</Table.ColumnHeader>
-              <Table.ColumnHeader>Model</Table.ColumnHeader>
-              <Table.ColumnHeader>IP</Table.ColumnHeader>
-              <Table.ColumnHeader width="100px">Details</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {logs.length ? logs.map(log => (
-              <Table.Row key={log._id}>
-                <Table.Cell>{formatTs(log.timestamp)}</Table.Cell>
-                <Table.Cell><Badge colorScheme={getActionBadgeColor(log.actionType)}>{log.actionType}</Badge></Table.Cell>
-                <Table.Cell>{log.user?.name || 'System'}</Table.Cell>
-                <Table.Cell>{log.targetModel}</Table.Cell>
-                <Table.Cell>{log.ip || 'N/A'}</Table.Cell>
-                <Table.Cell><Button size="sm" onClick={() => viewLogDetails(log)}>View</Button></Table.Cell>
-              </Table.Row>
-            )) : (
-              <Table.Row><Table.Cell colSpan={6} textAlign="center">No logs found</Table.Cell></Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+    <Paper elevation={2} sx={{ p: 3, borderRadius: 1 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5">Audit Logs</Typography>
+        <Button 
+          endIcon={isFiltersOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />} 
+          variant="outlined" 
+          onClick={toggleFilters}
+        >
+          Filters
+        </Button>
       </Box>
 
-      <Flex justify="center" mt={4}>
-        <Pagination.Root count={totalPages} page={page} onPageChange={setPage}>
-          <ButtonGroup size="sm" variant="outline">
-            <Pagination.PrevTrigger asChild><Button disabled={page===1}>&lt;</Button></Pagination.PrevTrigger>
-            <Pagination.Items asChild>{item => (<Button variant={item.isCurrent?'solid':'outline'}>{item.value}</Button>)}</Pagination.Items>
-            <Pagination.NextTrigger asChild><Button disabled={page===totalPages}>&gt;</Button></Pagination.NextTrigger>
-          </ButtonGroup>
-        </Pagination.Root>
-      </Flex>
+      <Collapse in={isFiltersOpen}>
+        <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle1" fontWeight="medium" mb={2}>
+            Filter Options
+          </Typography>
+          <Grid container spacing={2} mb={2}>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth variant="outlined" size="small">
+                <InputLabel id="action-filter-label">Action</InputLabel>
+                <Select
+                  labelId="action-filter-label"
+                  name="action"
+                  value={filters.action}
+                  onChange={handleFilterChange}
+                  label="Action"
+                >
+                  <MenuItem value="">All Actions</MenuItem>
+                  <MenuItem value="CREATE">Create</MenuItem>
+                  <MenuItem value="READ">Read</MenuItem>
+                  <MenuItem value="UPDATE">Update</MenuItem>
+                  <MenuItem value="DELETE">Delete</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth variant="outlined" size="small">
+                <InputLabel id="model-filter-label">Model</InputLabel>
+                <Select
+                  labelId="model-filter-label"
+                  name="targetModel"
+                  value={filters.targetModel}
+                  onChange={handleFilterChange}
+                  label="Model"
+                >
+                  <MenuItem value="">All Models</MenuItem>
+                  <MenuItem value="User">User</MenuItem>
+                  <MenuItem value="Animal">Animal</MenuItem>
+                  <MenuItem value="Auth">Auth</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                name="startDate"
+                label="Start Date"
+                type="date"
+                value={filters.startDate}
+                onChange={handleFilterChange}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                size="small"
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                name="endDate"
+                label="End Date"
+                type="date"
+                value={filters.endDate}
+                onChange={handleFilterChange}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                size="small"
+                fullWidth
+              />
+            </Grid>
+          </Grid>
+          <Box display="flex" justifyContent="flex-end">
+            <Button variant="text" onClick={clearFilters} sx={{ mr: 1 }}>
+              Clear
+            </Button>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<SearchIcon />}
+            >
+              Apply
+            </Button>
+          </Box>
+        </Paper>
+      </Collapse>
 
-      {/* Dialog for details */}
-      <Dialog.Root open={dialog.isOpen} onOpenChange={dialog.onToggle} role='dialog'>
-        <Dialog.Trigger asChild hidden />
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content>
-              <Dialog.Header>
-                <Dialog.Title>Audit Log Details</Dialog.Title>
-                <Dialog.CloseTrigger asChild>
-                  <IconButton aria-label="Close" icon={<LuX />} ref={cancelRef} />
-                </Dialog.CloseTrigger>
-              </Dialog.Header>
-              <Dialog.Body>
-                {selectedLog && (
-                  <Stack spacing={4}>
-                    <Text><strong>Timestamp:</strong> {formatTs(selectedLog.timestamp)}</Text>
-                    <Text><strong>Action:</strong> {selectedLog.action}</Text>
-                    <Text><strong>User:</strong> {selectedLog.user?.name || 'System'}</Text>
-                    <Text><strong>Model:</strong> {selectedLog.targetModel}</Text>
-                    <Text><strong>IP:</strong> {selectedLog.ip || 'N/A'}</Text>
-                    {selectedLog.details && (
-                      <Box mt={2} p={3} bg="gray.50" borderRadius="md" maxH="200px" overflow="auto">
-                        <Code whiteSpace="pre">{JSON.stringify(selectedLog.details, null, 2)}</Code>
-                      </Box>
-                    )}
-                  </Stack>
-                )}
-              </Dialog.Body>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
-    </Box>
+      {error && <Typography color="error" mb={2}>{error}</Typography>}
+
+      <TableContainer sx={{ mb: 2 }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Timestamp</TableCell>
+              <TableCell>Action</TableCell>
+              <TableCell>User</TableCell>
+              <TableCell>Model</TableCell>
+              <TableCell>IP</TableCell>
+              <TableCell width="100px">Details</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {logs.length ? logs.map(log => (
+              <TableRow key={log._id} hover>
+                <TableCell>{formatTs(log.timestamp)}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={log.actionType} 
+                    color={getActionBadgeColor(log.actionType)} 
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>{log.user?.name || 'System'}</TableCell>
+                <TableCell>{log.targetModel}</TableCell>
+                <TableCell>{log.ip || 'N/A'}</TableCell>
+                <TableCell>
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => viewLogDetails(log)}
+                  >
+                    View
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  No logs found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Box display="flex" justifyContent="center" mt={2}>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={(_, newPage) => setPage(newPage)}
+          color="primary"
+          size="small"
+          showFirstButton
+          showLastButton
+        />
+      </Box>
+
+      {/* Details Dialog */}
+      <Dialog 
+        open={detailsDialogOpen} 
+        onClose={closeDetailsDialog}
+        maxWidth="md"
+      >
+        <DialogTitle>
+          Audit Log Details
+          <IconButton
+            aria-label="close"
+            onClick={closeDetailsDialog}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8
+            }}
+            ref={cancelRef}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedLog && (
+            <Stack spacing={2}>
+              <Typography><strong>Timestamp:</strong> {formatTs(selectedLog.timestamp)}</Typography>
+              <Typography><strong>Action:</strong> {selectedLog.action}</Typography>
+              <Typography><strong>User:</strong> {selectedLog.user?.name || 'System'}</Typography>
+              <Typography><strong>Model:</strong> {selectedLog.targetModel}</Typography>
+              <Typography><strong>IP:</strong> {selectedLog.ip || 'N/A'}</Typography>
+              {selectedLog.details && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1, maxHeight: 200, overflow: 'auto' }}>
+                  <pre style={{ margin: 0, fontFamily: '"Roboto Mono", monospace', fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>
+                    {JSON.stringify(selectedLog.details, null, 2)}
+                  </pre>
+                </Box>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDetailsDialog}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
+    </Paper>
   );
 };
 

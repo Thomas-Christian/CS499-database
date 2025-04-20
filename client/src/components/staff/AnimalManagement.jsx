@@ -4,22 +4,35 @@ import axios from 'axios';
 import {
   Box,
   Button,
-  Flex,
-  Heading,
-  Input,
+  Paper,
+  Typography,
+  TextField,
   Select,
-  NumberInput,
-  Field,
-  Fieldset,
+  MenuItem,
+  FormControl,
+  InputLabel,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Stack,
-  Text,
-  Spinner,
-  Badge,
-  useDisclosure,
-  Collapsible
-} from '@chakra-ui/react';
-import { toaster } from "../ui/toaster"
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Grid,
+  Divider,
+  Collapse,
+  Alert,
+  Snackbar
+} from '@mui/material';
+
+import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../../context/AuthContext';
 
 const AnimalManagement = () => {
@@ -43,19 +56,19 @@ const AnimalManagement = () => {
     age_upon_outcome_in_weeks: ''
   });
 
+  // Form dialog and delete confirmation states
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Snackbar for notifications
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info"
+  });
+
   const { token, hasRole } = useAuth();
   const isAdmin = hasRole('admin');
-
-  const {
-    isOpen: isFormOpen,
-    onOpen: onFormOpen,
-    onClose: onFormClose
-  } = useDisclosure();
-  const {
-    isOpen: isDeleteOpen,
-    onOpen: onDeleteOpen,
-    onClose: onDeleteClose
-  } = useDisclosure();
   const cancelRef = useRef();
 
   // Fetch animals
@@ -72,11 +85,7 @@ const AnimalManagement = () => {
       } catch (err) {
         console.error(err);
         setError('Failed to fetch animals');
-        toaster.create({
-          title: "Error",
-          description: "Failed to fetch animals",
-          status: "error"
-        });
+        showNotification('Failed to fetch animals', 'error');
       } finally {
         setLoading(false);
       }
@@ -84,11 +93,13 @@ const AnimalManagement = () => {
     fetchAnimals();
   }, [token]);
 
-  // Handle changes
+  // Handle text and select input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(d => ({ ...d, [name]: value }));
   };
+  
+  // Handle numeric input changes
   const handleNumberChange = (name, value) => {
     setFormData(d => ({ ...d, [name]: value }));
   };
@@ -119,7 +130,7 @@ const AnimalManagement = () => {
     }
   }, [formData.date_of_birth]);
 
-  // Open “Add” form
+  // Open "Add" form
   const handleAddAnimal = () => {
     const newId = `A${Math.floor(Math.random()*10000).toString().padStart(4,'0')}`;
     setSelectedAnimal(null);
@@ -138,10 +149,10 @@ const AnimalManagement = () => {
       age_upon_outcome: '',
       age_upon_outcome_in_weeks: ''
     });
-    onFormOpen();
+    setFormDialogOpen(true);
   };
 
-  // Open “Edit” form
+  // Open "Edit" form
   const handleEditAnimal = (a) => {
     setSelectedAnimal(a);
     const formattedDob = a.date_of_birth
@@ -162,13 +173,13 @@ const AnimalManagement = () => {
       age_upon_outcome: a.age_upon_outcome||'',
       age_upon_outcome_in_weeks: a.age_upon_outcome_in_weeks||''
     });
-    onFormOpen();
+    setFormDialogOpen(true);
   };
 
   // Confirm delete
   const handleDeleteClick = (a) => {
     setSelectedAnimal(a);
-    onDeleteOpen();
+    setDeleteDialogOpen(true);
   };
 
   // Submit create/update
@@ -189,7 +200,7 @@ const AnimalManagement = () => {
         setAnimals(arr =>
           arr.map(x => x._id===selectedAnimal._id?{...x,...payload}:x)
         );
-        toaster.create({ title:"Success", description:"Animal updated", status:"success" });
+        showNotification("Animal updated successfully", "success");
       } else {
         const res = await axios.post(
           'http://localhost:5000/api/animals',
@@ -197,16 +208,12 @@ const AnimalManagement = () => {
           { headers:{Authorization:`Bearer ${token}`}}
         );
         setAnimals(arr => [res.data.data, ...arr]);
-        toaster.create({ title:"Success", description:"Animal created", status:"success" });
+        showNotification("Animal created successfully", "success");
       }
-      onFormClose();
+      setFormDialogOpen(false);
     } catch (err) {
       console.error(err);
-      toaster.create({
-        title:"Error",
-        description: err.response?.data?.message||'Failed to save',
-        status:"error"
-      });
+      showNotification(err.response?.data?.message||'Failed to save', "error");
     }
   };
 
@@ -218,328 +225,389 @@ const AnimalManagement = () => {
         { headers:{Authorization:`Bearer ${token}`}}
       );
       setAnimals(arr => arr.filter(x => x._id!==selectedAnimal._id));
-      toaster.create({ title:"Success", description:"Deleted", status:"success" });
-      onDeleteClose();
+      showNotification("Animal deleted successfully", "success");
+      setDeleteDialogOpen(false);
     } catch (err) {
       console.error(err);
-      toaster.create({
-        title:"Error",
-        description: err.response?.data?.message||'Failed to delete',
-        status:"error"
-      });
+      showNotification(err.response?.data?.message||'Failed to delete', "error");
     }
   };
 
-  const getBadge = (o) => {
-    switch(o){
-      case 'Adoption': return 'green';
-      case 'Transfer': return 'blue';
-      case 'Return to Owner': return 'purple';
-      case 'Euthanasia': return 'red';
-      case 'Died': return 'gray';
-      case 'Available': return 'teal';
-      default: return 'gray';
+  // Get color for outcome chip
+  const getChipColor = (outcome) => {
+    switch(outcome){
+      case 'Adoption': return 'success';
+      case 'Transfer': return 'primary';
+      case 'Return to Owner': return 'secondary';
+      case 'Euthanasia': return 'error';
+      case 'Died': return 'default';
+      case 'Available': return 'info';
+      default: return 'default';
     }
+  };
+
+  // Handle snackbar state
+  const handleCloseSnackbar = () => {
+    setSnackbar({...snackbar, open: false});
+  };
+
+  const showNotification = (message, severity = "info") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
   };
 
   if (loading) {
     return (
-      <Flex justify="center" align="center" height="400px">
-        <Spinner size="xl" thickness="4px" color="blue.500" />
-      </Flex>
+      <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+        <CircularProgress size={40} />
+      </Box>
     );
   }
 
   return (
-    <Box p={4} bg="white" borderRadius="lg" boxShadow="md">
-
-      <Flex justify="space-between" align="center" mb={5}>
-        <Heading size="lg">Animal Management</Heading>
-        <Button colorScheme="blue" onClick={handleAddAnimal}>
+    <Paper elevation={2} sx={{ p: 3, borderRadius: 1 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5">Animal Management</Typography>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={handleAddAnimal}
+        >
           Add New Animal
         </Button>
-      </Flex>
+      </Box>
 
       {error ? (
-        <Text color="red.500">{error}</Text>
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
       ) : (
-        <Table.ScrollArea>
-          <Table.Root size="sm" striped stickyHeader variant="outline">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>ID</Table.ColumnHeader>
-                <Table.ColumnHeader>Name</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Breed</Table.ColumnHeader>
-                <Table.ColumnHeader>Age</Table.ColumnHeader>
-                <Table.ColumnHeader>Sex</Table.ColumnHeader>
-                <Table.ColumnHeader>Outcome</Table.ColumnHeader>
-                <Table.ColumnHeader width="150px">Actions</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+        <TableContainer sx={{ maxHeight: 440 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Breed</TableCell>
+                <TableCell>Age</TableCell>
+                <TableCell>Sex</TableCell>
+                <TableCell>Outcome</TableCell>
+                <TableCell width="150px">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {animals.length > 0 ? (
                 animals.map(a => (
-                  <Table.Row key={a._id}>
-                    <Table.Cell>{a.animal_id}</Table.Cell>
-                    <Table.Cell>{a.name||'Unknown'}</Table.Cell>
-                    <Table.Cell>{a.animal_type}</Table.Cell>
-                    <Table.Cell>{a.breed}</Table.Cell>
-                    <Table.Cell>{a.age_upon_outcome}</Table.Cell>
-                    <Table.Cell>{a.sex_upon_outcome}</Table.Cell>
-                    <Table.Cell>
-                      <Badge
-                        colorScheme={getBadge(a.outcome_type)}
-                        px={2} py={1} borderRadius="md"
-                      >
-                        {a.outcome_type}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Stack direction="row" spacing={2}>
-                        <Button size="sm" colorScheme="blue" onClick={()=>handleEditAnimal(a)}>
+                  <TableRow key={a._id} hover>
+                    <TableCell>{a.animal_id}</TableCell>
+                    <TableCell>{a.name||'Unknown'}</TableCell>
+                    <TableCell>{a.animal_type}</TableCell>
+                    <TableCell>{a.breed}</TableCell>
+                    <TableCell>{a.age_upon_outcome}</TableCell>
+                    <TableCell>{a.sex_upon_outcome}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={a.outcome_type}
+                        color={getChipColor(a.outcome_type)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
+                        <Button size="small" variant="outlined" color="primary" onClick={()=>handleEditAnimal(a)}>
                           Edit
                         </Button>
                         {isAdmin && (
-                          <Button size="sm" colorScheme="red" onClick={()=>handleDeleteClick(a)}>
+                          <Button size="small" variant="outlined" color="error" onClick={()=>handleDeleteClick(a)}>
                             Delete
                           </Button>
                         )}
                       </Stack>
-                    </Table.Cell>
-                  </Table.Row>
+                    </TableCell>
+                  </TableRow>
                 ))
               ) : (
-                <Table.Row>
-                  <Table.Cell colSpan={8} textAlign="center">
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
                     No animals found
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
               )}
-            </Table.Body>
-          </Table.Root>
-        </Table.ScrollArea>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
-      {/* Form Modal */}
-      <Collapsible.Root open={isFormOpen}>
-        <Collapsible.Content>
-          <Box mt={4} mb={4}>
-            <Heading size="md">
-              {selectedAnimal ? 'Edit Animal' : 'Add New Animal'}
-            </Heading>
-            <Button size="sm" float="right" onClick={onFormClose}>
-              ✕
-            </Button>
-            <form id="animalForm" onSubmit={handleSubmit}>
-              <Fieldset.Root size="md">
-                <Fieldset.Legend>Animal Details</Fieldset.Legend>
-                <Fieldset.Content>
-                  <Field.Root required>
-                    <Field.Label>Animal ID</Field.Label>
-                    <Input
-                      id="animal_id"
-                      name="animal_id"
-                      value={formData.animal_id}
-                      onChange={handleChange}
-                      isReadOnly={!!selectedAnimal}
-                    />
-                    <Field.HelperText>
-                      {selectedAnimal
-                        ? 'Cannot edit ID'
-                        : 'Auto‑generated for new animals'}
-                    </Field.HelperText>
-                  </Field.Root>
+      {/* Form Dialog */}
+      <Dialog 
+        open={formDialogOpen} 
+        onClose={() => setFormDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedAnimal ? 'Edit Animal' : 'Add New Animal'}
+          <IconButton
+            aria-label="close"
+            onClick={() => setFormDialogOpen(false)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <form id="animalForm" onSubmit={handleSubmit}>
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              Animal Details
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Animal ID"
+                  name="animal_id"
+                  value={formData.animal_id}
+                  onChange={handleChange}
+                  fullWidth
+                  required
+                  margin="normal"
+                  InputProps={{
+                    readOnly: !!selectedAnimal,
+                  }}
+                  helperText={selectedAnimal
+                    ? 'Cannot edit ID'
+                    : 'Auto-generated for new animals'}
+                />
+              </Grid>
 
-                  <Field.Root>
-                    <Field.Label>Name</Field.Label>
-                    <Input
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Optional"
-                    />
-                  </Field.Root>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  fullWidth
+                  margin="normal"
+                  placeholder="Optional"
+                />
+              </Grid>
 
-                  <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                    <Field.Root required>
-                      <Field.Label>Type</Field.Label>
-                      <Select
-                        name="animal_type"
-                        value={formData.animal_type}
-                        onChange={handleChange}
-                      >
-                        <option>Dog</option>
-                        <option>Cat</option>
-                        <option>Bird</option>
-                        <option>Other</option>
-                      </Select>
-                    </Field.Root>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth margin="normal" required>
+                  <InputLabel>Type</InputLabel>
+                  <Select
+                    name="animal_type"
+                    value={formData.animal_type}
+                    onChange={handleChange}
+                    label="Type"
+                  >
+                    <MenuItem value="Dog">Dog</MenuItem>
+                    <MenuItem value="Cat">Cat</MenuItem>
+                    <MenuItem value="Bird">Bird</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-                    <Field.Root required>
-                      <Field.Label>Breed</Field.Label>
-                      <Input
-                        name="breed"
-                        value={formData.breed}
-                        onChange={handleChange}
-                      />
-                    </Field.Root>
-                  </Stack>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Breed"
+                  name="breed"
+                  value={formData.breed}
+                  onChange={handleChange}
+                  fullWidth
+                  required
+                  margin="normal"
+                />
+              </Grid>
 
-                  <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                    <Field.Root required>
-                      <Field.Label>Color</Field.Label>
-                      <Input
-                        name="color"
-                        value={formData.color}
-                        onChange={handleChange}
-                      />
-                    </Field.Root>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Color"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleChange}
+                  fullWidth
+                  required
+                  margin="normal"
+                />
+              </Grid>
 
-                    <Field.Root>
-                      <Field.Label>Date of Birth</Field.Label>
-                      <Input
-                        type="date"
-                        name="date_of_birth"
-                        value={formData.date_of_birth}
-                        onChange={handleChange}
-                      />
-                      <Field.HelperText>
-                        Auto‑calculates age
-                      </Field.HelperText>
-                    </Field.Root>
-                  </Stack>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Date of Birth"
+                  name="date_of_birth"
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={handleChange}
+                  fullWidth
+                  margin="normal"
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  helperText="Auto-calculates age"
+                />
+              </Grid>
 
-                  <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                    <Field.Root>
-                      <Field.Label>Age</Field.Label>
-                      <Input
-                        name="age_upon_outcome"
-                        value={formData.age_upon_outcome}
-                        onChange={handleChange}
-                        placeholder="Auto-calculated"
-                      />
-                    </Field.Root>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Age"
+                  name="age_upon_outcome"
+                  value={formData.age_upon_outcome}
+                  onChange={handleChange}
+                  fullWidth
+                  margin="normal"
+                  placeholder="Auto-calculated"
+                />
+              </Grid>
 
-                    <Field.Root>
-                      <Field.Label>Age in Weeks</Field.Label>
-                        <NumberInput.Root
-                            value={formData.age_upon_outcome_in_weeks}
-                            onValueChange={(v) => handleNumberChange('age_upon_outcome_in_weeks', v)}
-                            min={0}
-                            maxW="150px"
-                        >
-                            <NumberInput.Input />
-                            <NumberInput.Control />
-                        </NumberInput.Root>
-                    </Field.Root>
-                  </Stack>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Age in Weeks"
+                  name="age_upon_outcome_in_weeks"
+                  type="number"
+                  value={formData.age_upon_outcome_in_weeks}
+                  onChange={(e) => handleNumberChange('age_upon_outcome_in_weeks', e.target.value)}
+                  fullWidth
+                  margin="normal"
+                />
+              </Grid>
 
-                  <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                    <Field.Root required>
-                      <Field.Label>Sex</Field.Label>
-                      <Select
-                        name="sex_upon_outcome"
-                        value={formData.sex_upon_outcome}
-                        onChange={handleChange}
-                      >
-                        <option>Intact Male</option>
-                        <option>Intact Female</option>
-                        <option>Neutered Male</option>
-                        <option>Spayed Female</option>
-                        <option>Unknown</option>
-                      </Select>
-                    </Field.Root>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth margin="normal" required>
+                  <InputLabel>Sex</InputLabel>
+                  <Select
+                    name="sex_upon_outcome"
+                    value={formData.sex_upon_outcome}
+                    onChange={handleChange}
+                    label="Sex"
+                  >
+                    <MenuItem value="Intact Male">Intact Male</MenuItem>
+                    <MenuItem value="Intact Female">Intact Female</MenuItem>
+                    <MenuItem value="Neutered Male">Neutered Male</MenuItem>
+                    <MenuItem value="Spayed Female">Spayed Female</MenuItem>
+                    <MenuItem value="Unknown">Unknown</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-                    <Field.Root required>
-                      <Field.Label>Outcome</Field.Label>
-                      <Select
-                        name="outcome_type"
-                        value={formData.outcome_type}
-                        onChange={handleChange}
-                      >
-                        <option>Available</option>
-                        <option>Adoption</option>
-                        <option>Transfer</option>
-                        <option>Return to Owner</option>
-                        <option>Euthanasia</option>
-                        <option>Died</option>
-                      </Select>
-                    </Field.Root>
-                  </Stack>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth margin="normal" required>
+                  <InputLabel>Outcome</InputLabel>
+                  <Select
+                    name="outcome_type"
+                    value={formData.outcome_type}
+                    onChange={handleChange}
+                    label="Outcome"
+                  >
+                    <MenuItem value="Available">Available</MenuItem>
+                    <MenuItem value="Adoption">Adoption</MenuItem>
+                    <MenuItem value="Transfer">Transfer</MenuItem>
+                    <MenuItem value="Return to Owner">Return to Owner</MenuItem>
+                    <MenuItem value="Euthanasia">Euthanasia</MenuItem>
+                    <MenuItem value="Died">Died</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-                  <Field.Root>
-                    <Field.Label>Outcome Subtype</Field.Label>
-                    <Input
-                      name="outcome_subtype"
-                      value={formData.outcome_subtype}
-                      onChange={handleChange}
-                      placeholder="Optional"
-                    />
-                  </Field.Root>
+              <Grid item xs={12}>
+                <TextField
+                  label="Outcome Subtype"
+                  name="outcome_subtype"
+                  value={formData.outcome_subtype}
+                  onChange={handleChange}
+                  fullWidth
+                  margin="normal"
+                  placeholder="Optional"
+                />
+              </Grid>
 
-                  <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                    <Field.Root>
-                      <Field.Label>Latitude</Field.Label>
-                      <NumberInput.Root
-                            value={formData.location_lat}
-                            onValueChange={(v) => handleNumberChange('location_lat', v)}
-                            min={0}
-                            maxW="150px"
-                        >
-                            <NumberInput.Input />
-                            <NumberInput.Control />
-                        </NumberInput.Root>
-                    </Field.Root>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Latitude"
+                  name="location_lat"
+                  type="number"
+                  value={formData.location_lat}
+                  onChange={(e) => handleNumberChange('location_lat', e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  InputProps={{
+                    inputProps: { step: 0.000001 }
+                  }}
+                />
+              </Grid>
 
-                    <Field.Root>
-                      <Field.Label>Longitude</Field.Label>
-                      <NumberInput.Root
-                            value={formData.location_long}
-                            onValueChange={(v) => handleNumberChange('location_long', v)}
-                            min={0}
-                            maxW="150px"
-                        >
-                            <NumberInput.Input />
-                            <NumberInput.Control />
-                        </NumberInput.Root>
-                    </Field.Root>
-                  </Stack>
-                </Fieldset.Content>
-              </Fieldset.Root>
-              <Flex justify="flex-end" mt={4}>
-                <Button variant="ghost" mr={3} onClick={onFormClose}>
-                  Cancel
-                </Button>
-                <Button colorScheme="blue" type="submit">
-                  {selectedAnimal ? 'Update' : 'Create'}
-                </Button>
-              </Flex>
-            </form>
-          </Box>
-        </Collapsible.Content>
-      </Collapsible.Root>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Longitude"
+                  name="location_long"
+                  type="number"
+                  value={formData.location_long}
+                  onChange={(e) => handleNumberChange('location_long', e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  InputProps={{
+                    inputProps: { step: 0.000001 }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFormDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} color="primary" variant="contained">
+            {selectedAnimal ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Delete Confirmation */}
-      <Collapsible.Root open={isDeleteOpen}>
-        <Collapsible.Content>
-          <Box mt={4} p={4} bg="gray.50" borderRadius="md">
-            <Heading size="md" mb={2}>Delete Animal</Heading>
-            <Text mb={4}>
-              Are you sure you want to delete <b>{selectedAnimal?.name || selectedAnimal?.animal_id}</b>? This action cannot be undone.
-            </Text>
-            <Flex justify="flex-end">
-              <Button ref={cancelRef} onClick={onDeleteClose} mr={3}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteAnimal}>
-                Delete
-              </Button>
-            </Flex>
-          </Box>
-        </Collapsible.Content>
-      </Collapsible.Root>
-    </Box>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete Animal</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete <strong>{selectedAnimal?.name || selectedAnimal?.animal_id}</strong>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button ref={cancelRef} onClick={() => setDeleteDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteAnimal} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          elevation={6}
+          variant="filled"
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Paper>
   );
 };
 

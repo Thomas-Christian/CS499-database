@@ -1,188 +1,242 @@
 // src/components/Header.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-  Flex, 
-  Heading, 
+  AppBar, 
+  Toolbar, 
+  Typography, 
   Button, 
-  Menu, 
-  HStack,
-  Badge,
-  useBreakpointValue,
-} from '@chakra-ui/react';
+  Stack, 
+  Chip, 
+  useMediaQuery,
+  Box,
+  Menu,
+  MenuItem,
+  IconButton
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import MenuIcon from '@mui/icons-material/Menu';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
   const { user, isAuthenticated, hasRole, logout } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [anchorEl, setAnchorEl] = useState(null);
+  
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+    handleMenuClose();
   };
 
   // Get role badge color
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin':
-        return 'red';
+        return 'error';
       case 'staff':
-        return 'green';
+        return 'success';
       case 'volunteer':
-        return 'blue';
+        return 'primary';
       default:
-        return 'gray';
+        return 'default';
     }
   };
 
   return (
-    <Flex 
-      as="header" 
-      align="center" 
-      justify="space-between" 
-      py={5}
-      px={8}
-      bg="white"
-      borderRadius="lg"
-      boxShadow="md"
-      wrap="wrap"
+    <AppBar 
+      position="static" 
+      sx={{ 
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        borderRadius: 1,
+        boxShadow: 2
+      }}
     >
-      <Heading 
-        as={RouterLink}
-        to="/"
-        fontSize={{ base: "xl", md: "2xl", lg: "3xl" }}
-        color="blue.600"
-        mr={4}
-      >
-        Animal Shelter Dashboard
-      </Heading>
+      <Toolbar sx={{ justifyContent: 'space-between', py: 1.5, px: 4 }}>
+        <Typography
+          variant="h5"
+          component={RouterLink}
+          to="/"
+          color="primary"
+          sx={{ 
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            fontSize: { xs: '1.25rem', md: '1.5rem', lg: '1.75rem' },
+            mr: 2
+          }}
+        >
+          Animal Shelter Dashboard
+        </Typography>
 
-      <HStack spacing={4}>
-        {isAuthenticated ? (
-          <>
-            {/* Main Navigation - Only show on non-mobile */}
-            {!isMobile && (
-              <HStack spacing={3}>
-                <Button
-                  as={RouterLink}
-                  to="/"
-                  variant="ghost"
-                  colorScheme="blue"
-                >
-                  Dashboard
-                </Button>
-                
-                {/* Staff and Admin Navigation */}
-                {hasRole(['admin', 'staff']) && (
+        <Stack direction="row" spacing={2} alignItems="center">
+          {isAuthenticated ? (
+            <>
+              {/* Main Navigation - Only show on non-mobile */}
+              {!isMobile && (
+                <Stack direction="row" spacing={1.5}>
                   <Button
-                    as={RouterLink}
-                    to="/animals/manage"
-                    variant="ghost"
-                    colorScheme="blue"
+                    component={RouterLink}
+                    to="/"
+                    color="primary"
+                    variant="text"
                   >
-                    Manage Animals
+                    Dashboard
                   </Button>
-                )}
-                
-                {/* Admin Only Navigation */}
-                {hasRole('admin') && (
-                  <>
+                  
+                  {/* Staff and Admin Navigation */}
+                  {hasRole(['admin', 'staff']) && (
                     <Button
-                      as={RouterLink}
-                      to="/admin/users"
-                      variant="ghost"
-                      colorScheme="blue"
+                      component={RouterLink}
+                      to="/animals/manage"
+                      color="primary"
+                      variant="text"
                     >
-                      Users
+                      Manage Animals
                     </Button>
-                    <Button
-                      as={RouterLink}
-                      to="/admin/audit"
-                      variant="ghost"
-                      colorScheme="blue"
-                    >
-                      Audit Logs
-                    </Button>
-                  </>
-                )}
-              </HStack>
-            )}
-            
-            {/* User Menu */}
-            <Menu.Root>
-              <Menu.Trigger asChild>
-                <Button> 
-                  {isMobile ? 'Menu' : user?.name}
-                  {user?.role && (
-                    <Badge ml={2} colorScheme={getRoleBadgeColor(user.role)}>
-                      {user.role}
-                    </Badge>
                   )}
+                  
+                  {/* Admin Only Navigation */}
+                  {hasRole('admin') && (
+                    <>
+                      <Button
+                        component={RouterLink}
+                        to="/admin/users"
+                        color="primary"
+                        variant="text"
+                      >
+                        Users
+                      </Button>
+                      <Button
+                        component={RouterLink}
+                        to="/admin/audit"
+                        color="primary"
+                        variant="text"
+                      >
+                        Audit Logs
+                      </Button>
+                    </>
+                  )}
+                </Stack>
+              )}
+              
+              {/* User Menu */}
+              <Box>
+                <Button 
+                  onClick={handleMenuOpen}
+                  variant="contained"
+                  color="primary"
+                  endIcon={user?.role && (
+                    <Chip
+                      label={user.role}
+                      size="small"
+                      color={getRoleBadgeColor(user.role)}
+                      sx={{ ml: 0.5 }}
+                    />
+                  )}
+                >
+                  {isMobile ? 'Menu' : user?.name}
                 </Button>
-              </Menu.Trigger>
-
-              <Menu.Content>
-                {/* Mobile Navigation Items */}
-                {isMobile && (
-                  <>
-                    <Menu.Item as={RouterLink} to="/">
-                      Dashboard
-                    </Menu.Item>
-                    
-                    {/* Staff and Admin Navigation */}
-                    {hasRole(['admin', 'staff']) && (
-                      <Menu.Item as={RouterLink} to="/animals/manage">
-                        Manage Animals
-                      </Menu.Item>
-                    )}
-                    
-                    {/* Admin Only Navigation */}
-                    {hasRole('admin') && (
-                      <>
-                        <Menu.Item as={RouterLink} to="/admin/users">
-                          Users
-                        </Menu.Item>
-                        <Menu.Item as={RouterLink} to="/admin/audit">
-                          Audit Logs
-                        </Menu.Item>
-                      </>
-                    )}
-                  </>
-                )}
-                
-                {/* Common Menu Items */}
-                <Menu.Item as={RouterLink} to="/profile">
-                  Profile
-                </Menu.Item>
-                <Menu.Item onClick={handleLogout} color="red.500">
-                  Logout
-                </Menu.Item>
-              </Menu.Content>
-            </Menu.Root>
-          </>
-        ) : (
-          // Not authenticated - show login/register buttons
-          <HStack spacing={3}>
-            <Button
-              as={RouterLink}
-              to="/login"
-              colorScheme="blue"
-              variant="outline"
-            >
-              Login
-            </Button>
-            <Button
-              as={RouterLink}
-              to="/register"
-              colorScheme="blue"
-            >
-              Register
-            </Button>
-          </HStack>
-        )}
-      </HStack>
-    </Flex>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                >
+                  {/* Mobile Navigation Items */}
+                  {isMobile && (
+                    <>
+                      <MenuItem 
+                        component={RouterLink} 
+                        to="/"
+                        onClick={handleMenuClose}
+                      >
+                        Dashboard
+                      </MenuItem>
+                      
+                      {/* Staff and Admin Navigation */}
+                      {hasRole(['admin', 'staff']) && (
+                        <MenuItem 
+                          component={RouterLink} 
+                          to="/animals/manage"
+                          onClick={handleMenuClose}
+                        >
+                          Manage Animals
+                        </MenuItem>
+                      )}
+                      
+                      {/* Admin Only Navigation */}
+                      {hasRole('admin') && (
+                        <>
+                          <MenuItem 
+                            component={RouterLink} 
+                            to="/admin/users"
+                            onClick={handleMenuClose}
+                          >
+                            Users
+                          </MenuItem>
+                          <MenuItem 
+                            component={RouterLink} 
+                            to="/admin/audit"
+                            onClick={handleMenuClose}
+                          >
+                            Audit Logs
+                          </MenuItem>
+                        </>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Common Menu Items */}
+                  <MenuItem 
+                    component={RouterLink} 
+                    to="/profile"
+                    onClick={handleMenuClose}
+                  >
+                    Profile
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={handleLogout} 
+                    sx={{ color: 'error.main' }}
+                  >
+                    Logout
+                  </MenuItem>
+                </Menu>
+              </Box>
+            </>
+          ) : (
+            // Not authenticated - show login/register buttons
+            <Stack direction="row" spacing={1.5}>
+              <Button
+                component={RouterLink}
+                to="/login"
+                color="primary"
+                variant="outlined"
+              >
+                Login
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/register"
+                color="primary"
+                variant="contained"
+              >
+                Register
+              </Button>
+            </Stack>
+          )}
+        </Stack>
+      </Toolbar>
+    </AppBar>
   );
 };
 

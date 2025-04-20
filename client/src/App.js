@@ -1,8 +1,10 @@
 // src/App.js
 import React from 'react';
-
-import { Box, Flex, VStack } from '@chakra-ui/react';
+import { Box, Stack } from '@mui/material';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme';
 
 // Auth Components
 import { AuthProvider } from './context/AuthContext';
@@ -18,50 +20,49 @@ import DataTable from './components/DataTable';
 import PieChart from './components/PieChart';
 import MapComponent from './components/MapComponent';
 
-// Admin Components (to be created)
+// Admin Components
 import UserManagement from './components/admin/UserManagement';
 import AuditLogs from './components/admin/AuditLogs';
 
-// Staff Components (to be created)
+// Staff Components
 import AnimalManagement from './components/staff/AnimalManagement';
 
-import { Provider } from './components/ui/provider'
-
 function App() {
- 
   return (
-
-    <Provider> 
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
       <AuthProvider>
-        <BrowserRouter> 
-          <Box bg="gray.50" minH="100vh" p={5}>
-            <VStack spacing={5} align="stretch" maxW="1400px" mx="auto">
+        <BrowserRouter>
+          <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', p: 2.5 }}>
+            <Stack spacing={2.5} sx={{ maxWidth: '1400px', mx: 'auto' }}>
               <Header />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                
-                {/* Protected Routes - All Authenticated Users */}
-                <Route element={<PrivateRoute />}>
-                  <Route path="/" element={
-                    <VStack spacing={5} align="stretch">
-                      <FilterDropdown />
+                <Route path="/" element={
+                    <Stack spacing={2.5}>
                       <DataTable />
-                      <Flex 
-                        direction={{ base: 'column', md: 'row' }} 
-                        h={{ base: 'auto', md: '70vh' }}
-                        gap={5}
+                      <Box 
+                        sx={{
+                          display: 'flex',
+                          flexDirection: { xs: 'column', md: 'row' },
+                          height: { xs: 'auto', md: '70vh' },
+                          gap: 2.5
+                        }}
                       >
-                        <Box flex="1" h={{ base: '400px', md: '100%' }}>
+                        <Box sx={{ flex: '1', height: { xs: '400px', md: '100%' } }}>
                           <PieChart /> 
                         </Box>
-                        <Box flex="1" h={{ base: '400px', md: '100%' }}>
+                        <Box sx={{ flex: '1', height: { xs: '400px', md: '100%' } }}>
                           <MapComponent />
                         </Box>
-                      </Flex>
-                    </VStack>
+                      </Box>
+                    </Stack>
                   } />
+                
+                 {/* Protected Routes */}
+                <Route element={<PrivateRoute />}>
                   <Route path="/profile" element={<Profile />} />
                 </Route>
                 
@@ -79,12 +80,11 @@ function App() {
                 {/* Fallback Route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </VStack>
+            </Stack>
           </Box>
         </BrowserRouter>
       </AuthProvider>
-    </Provider>
-
+    </ThemeProvider>
   );
 }
 
