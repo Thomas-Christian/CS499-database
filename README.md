@@ -1,70 +1,98 @@
-# Getting Started with Create React App
+# CS499 Database Capstone Project
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Overview
 
-## Available Scripts
+The project is a full-stack web application designed to demonstrate proficiency in software engineering, database design, and secure coding practices. The application features a React frontend and a Node.js/Express backend, providing a platform for managing and interacting with a relational database.
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Frontend**: Built with React, offering a responsive and intuitive user interface.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Backend**: Developed with Node.js and Express, handling API requests and server-side logic.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Database**: Utilizes MongoDB for data storage and management.
 
-### `npm test`
+- **Security**: Implements best practices to protect against common vulnerabilities such as SQL injection.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Project Structure
 
-### `npm run build`
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+CS499-database/
+├── client/             # React frontend
+├── server/             # Node.js/Express backend
+├── README.md           # Project documentation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Getting Started
 
-### `npm run eject`
+### Prerequisites
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- [Node.js](https://nodejs.org/) (v14 or higher)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- [npm](https://www.npmjs.com/) (v6 or higher)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- [MySQL](https://www.mysql.com/) or [PostgreSQL](https://www.postgresql.org/) database
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Installation
 
-## Learn More
+1. **Clone the repository**:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+   ```bash
+   git clone https://github.com/Thomas-Christian/CS499-database.git
+   cd CS499-database
+   ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
 
-### Code Splitting
+2. **Set up the backend**:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+   ```bash
+   cd server
+   npm install
+   # Configure your database connection in the .env file
+   npm start
+   ```
 
-### Analyzing the Bundle Size
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+3. **Set up the frontend**:
 
-### Making a Progressive Web App
+   ```bash
+   cd client
+   npm install
+   npm start
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
 
-### Advanced Configuration
+4. **Access the application**:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+   Open your browser and navigate to `http://localhost:3000`.
 
-### Deployment
+## Usage
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+The application allows users to perform CRUD (Create, Read, Update, Delete) operations on the database through a user-friendly interface. It serves as a practical demonstration of integrating frontend and backend technologies with a relational database.
 
-### `npm run build` fails to minify
+## Security Considerations
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Security is a critical aspect of this project. Measures have been implemented to prevent common vulnerabilities:
+
+- **SQL Injection**: All database queries use parameterized statements to prevent injection attacks.
+
+- **Input Validation**: User inputs are validated on both the client and server sides to ensure data integrity.
+
+- **Error Handling**: Comprehensive error handling is in place to manage unexpected issues gracefully.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+## Acknowledgments
+
+- [React](https://reactjs.org/)
+
+- [Node.js](https://nodejs.org/)
+
+- [Express](https://expressjs.com/)
+
+- [MongoDB](https://www.mongodb.com/)
+
