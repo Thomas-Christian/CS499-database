@@ -33,7 +33,7 @@ CS499-database/
 
 - [npm](https://www.npmjs.com/) 
 
-- [MongoDB](https://www.mongodb.com/) database
+- [MongoDB](https://www.mongodb.com/)
 
 ### Installation
 
