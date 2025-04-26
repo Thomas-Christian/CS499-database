@@ -29,11 +29,11 @@ CS499-database/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v14 or higher)
+- [Node.js](https://nodejs.org/) 
 
-- [npm](https://www.npmjs.com/) (v6 or higher)
+- [npm](https://www.npmjs.com/) 
 
-- [MySQL](https://www.mysql.com/) or [PostgreSQL](https://www.postgresql.org/) database
+- [MongoDB](https://www.mongodb.com/) database
 
 ### Installation
 
